@@ -649,15 +649,27 @@ class DouyinExtractorApp(ctk.CTk):
             self.lbl_download_status.configure(text=f"Đang tải: {completed}/{total_count} video ({int(prog*100)}%)")
 
         def _worker():
-            DouyinExporter.batch_download(self.filtered_videos, download_dir, progress_callback=_progress)
-            self.after(0, self._on_download_complete)
+            cookie = self.config.get("douyin_cookie", "")
+            results = DouyinExporter.batch_download(self.filtered_videos, download_dir, cookie=cookie, progress_callback=_progress)
+            success_count = sum(1 for r in results if r.get("success"))
+            self.after(0, lambda: self._on_download_complete(success_count, len(results)))
 
         threading.Thread(target=_worker, daemon=True).start()
 
-    def _on_download_complete(self):
+    def _on_download_complete(self, success_count, total_count):
         self.btn_download_batch.configure(state="normal", text="⬇️ Bắt Đầu Tải Hàng Loạt Video (HD No-WM)")
-        self.lbl_download_status.configure(text="✅ Đã hoàn thành tải toàn bộ video!")
-        messagebox.showinfo("Hoàn tất", f"Đã tải xong video về thư mục:\n{self.config.get('download_folder')}")
+        if success_count > 0:
+            self.lbl_download_status.configure(text=f"✅ Đã tải thành công {success_count}/{total_count} video!")
+            messagebox.showinfo("Hoàn tất", f"Đã tải thành công {success_count}/{total_count} video về thư mục:\n{self.config.get('download_folder')}")
+        else:
+            self.lbl_download_status.configure(text="⚠️ Cần Cookie Douyin để tải trực tiếp file về máy")
+            messagebox.showinfo(
+                "Thông báo tải video",
+                "Máy chủ Douyin yêu cầu Cookie trình duyệt để tải trực tiếp file .mp4 về máy.\n\n"
+                "👉 Giải pháp:\n"
+                "1. Bạn có thể bấm '📊 Xuất File Excel' hoặc '📋 Sao Chép Link' để click mở xem trực tiếp trên trình duyệt (Cốc Cốc/Chrome) ngay lập tức.\n"
+                "2. Hoặc vào tab '⚙️ Cài Đặt' dán Cookie tài khoản Douyin để mở khóa tải tự động 100%!"
+            )
 
     # ================= TAB 4: SETTINGS =================
     def _create_settings_tab(self) -> ctk.CTkFrame:
