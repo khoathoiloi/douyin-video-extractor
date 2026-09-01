@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Douyin Content Finder - AI Multimodal Video Discovery</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <i class="fa-brands fa-tiktok logo-icon"></i>
+                <div class="logo-text">
+                    <h1>Douyin Content Finder</h1>
+                    <span class="badge-tag">Multimodal AI Engine</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <span class="status-indicator" id="apiStatus"><i class="fa-solid fa-circle text-success"></i> API Ready</span>
+                <button class="btn btn-outline" id="btnSettings"><i class="fa-solid fa-gear"></i> Cài đặt</button>
+            </div>
+        </header>
+
+        <!-- Stepper Navigation -->
+        <div class="stepper-container">
+            <div class="step-item active" data-step="1">
+                <div class="step-circle">1</div>
+                <div class="step-label">Tải Video Lên</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step-item" data-step="2">
+                <div class="step-circle">2</div>
+                <div class="step-label">Hồ Sơ Phân Tích AI</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step-item" data-step="3">
+                <div class="step-circle">3</div>
+                <div class="step-label">20 Từ Khóa Douyin</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step-item" data-step="4">
+                <div class="step-circle">4</div>
+                <div class="step-label">Kết Quả Video Douyin</div>
+            </div>
+        </div>
+
+        <!-- Main Content Screens -->
+        <main class="main-content">
+            <!-- STEP 1: UPLOAD -->
+            <section class="step-section active" id="step1Section">
+                <div class="upload-card">
+                    <div class="dropzone" id="dropzone">
+                        <i class="fa-solid fa-cloud-arrow-up drop-icon"></i>
+                        <h3>Kéo và thả video vào đây</h3>
+                        <p>Hỗ trợ định dạng .mp4, .mov, .webm, .avi (Tối đa 500MB)</p>
+                        <input type="file" id="videoFileInput" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo" hidden>
+                        <button class="btn btn-primary" onclick="document.getElementById('videoFileInput').click()">
+                            <i class="fa-solid fa-folder-open"></i> Chọn Video từ máy tính
+                        </button>
+                    </div>
+
+                    <div class="upload-details" id="uploadDetails" style="display: none;">
+                        <div class="video-preview-box">
+                            <video id="videoPreview" controls></video>
+                        </div>
+                        <div class="video-meta-box">
+                            <h4 id="videoFileName">video.mp4</h4>
+                            <p id="videoFileSize">0 MB</p>
+                            
+                            <div class="form-group" style="margin-top: 15px;">
+                                <label for="userHintInput">Ghi chú / Định hướng chủ đề (Tùy chọn):</label>
+                                <input type="text" id="userHintInput" class="form-control" placeholder="Ví dụ: Video cô gái nhảy theo nhịp điệu hot trend, review ẩm thực...">
+                            </div>
+
+                            <button class="btn btn-success btn-lg" id="btnStartPipeline" style="margin-top: 15px; width: 100%;">
+                                <i class="fa-solid fa-bolt"></i> Bắt Đầu Phân Tích & Quét Douyin
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Progress Modal / Bar -->
+                    <div class="progress-box" id="progressBox" style="display: none;">
+                        <div class="progress-header">
+                            <span id="progressStageText">Đang khởi tạo pipeline...</span>
+                            <span id="progressPercentText">0%</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" id="progressBarFill"></div>
+                        </div>
+                        <p class="progress-sub" id="progressSubText">Hệ thống đang trích xuất khung hình và âm thanh bằng FFmpeg...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STEP 2: ANALYSIS PROFILE -->
+            <section class="step-section" id="step2Section">
+                <div class="section-header">
+                    <h2><i class="fa-solid fa-brain"></i> Hồ Sơ Phân Tích Đa Phương Thức (Multimodal Profile)</h2>
+                    <button class="btn btn-primary" onclick="app.goToStep(3)">Tiếp tục: Xem 20 Từ Khóa <i class="fa-solid fa-arrow-right"></i></button>
+                </div>
+                
+                <div class="profile-grid" id="profileGrid"></div>
+            </section>
+
+            <!-- STEP 3: 20 CHINESE QUERIES -->
+            <section class="step-section" id="step3Section">
+                <div class="section-header">
+                    <div>
+                        <h2><i class="fa-solid fa-tags"></i> 20 Truy Vấn Tìm Kiếm Tiếng Trung Chuẩn Douyin</h2>
+                        <p class="text-muted">Được AI tối ưu theo 6 danh mục: Chủ đề cốt lõi, Nhân vật, Hành động, Bối cảnh, Định dạng & Long-tail.</p>
+                    </div>
+                    <div class="header-btns">
+                        <button class="btn btn-outline" id="btnRegenerateQueries"><i class="fa-solid fa-arrows-rotate"></i> Sinh Lại</button>
+                        <button class="btn btn-success" id="btnSearchQueries"><i class="fa-solid fa-magnifying-glass"></i> Bắt Đầu Quét Video Douyin</button>
+                    </div>
+                </div>
+
+                <div class="custom-query-box">
+                    <input type="text" id="customQueryInput" class="form-control" placeholder="Thêm từ khóa tiếng Trung tùy chỉnh (ví dụ: 热门舞蹈)...">
+                    <button class="btn btn-primary" id="btnAddCustomQuery"><i class="fa-solid fa-plus"></i> Thêm</button>
+                </div>
+
+                <div class="queries-grid" id="queriesGrid"></div>
+            </section>
+
+            <!-- STEP 4: RESULTS -->
+            <section class="step-section" id="step4Section">
+                <div class="section-header">
+                    <div>
+                        <h2><i class="fa-solid fa-square-poll-vertical"></i> Kết Quả Xếp Hạng & Danh Sách Video Douyin</h2>
+                        <p class="text-muted" id="resultsCountText">Đã lọc trùng lặp và xếp hạng đa tiêu chí.</p>
+                    </div>
+                    <div class="header-btns">
+                        <button class="btn btn-outline" id="btnExportExcel"><i class="fa-solid fa-file-excel"></i> Xuất Excel</button>
+                        <button class="btn btn-outline" id="btnCopyAllUrls"><i class="fa-solid fa-copy"></i> Sao Chép Tất Cả Link</button>
+                    </div>
+                </div>
+
+                <div class="results-grid" id="resultsGrid"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-sliders"></i> Cài Đặt Hệ Thống</h3>
+                <button class="close-modal" id="btnCloseModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label>Google Gemini API Key:</label>
+                    <input type="password" id="cfgGeminiKey" class="form-control" placeholder="Nhập Gemini API Key để kích hoạt Multimodal Vision & ASR...">
+                </div>
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label>Douyin Cookie:</label>
+                    <input type="text" id="cfgDouyinCookie" class="form-control" placeholder="Dán cookie Douyin để mở khóa 100% quét không giới hạn...">
+                </div>
+                <div class="form-group">
+                    <label>Search Provider:</label>
+                    <select id="cfgSearchProvider" class="form-control">
+                        <option value="live">Live Douyin Search Provider</option>
+                        <option value="mock">Mock Search Provider (Kiểm thử offline)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="btnSaveConfig">Lưu Cấu Hình</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
