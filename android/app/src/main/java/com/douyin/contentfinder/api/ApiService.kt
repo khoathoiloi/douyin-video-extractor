@@ -14,29 +14,29 @@ interface ApiService {
 
     @Multipart
     @POST("api/v1/search/video")
-    async fun uploadVideo(
+    suspend fun uploadVideo(
         @Part file: MultipartBody.Part,
         @Part("user_hint") userHint: RequestBody,
         @Part("deep_search") deepSearch: RequestBody
     ): Response<SearchInitResponse>
 
     @POST("api/v1/search/url")
-    async fun searchByUrl(
+    suspend fun searchByUrl(
         @Body request: UrlSearchRequest
     ): Response<SearchInitResponse>
 
     @POST("api/v1/search/keyword")
-    async fun searchByKeyword(
+    suspend fun searchByKeyword(
         @Body request: KeywordSearchRequest
     ): Response<SearchResultsResponse>
 
     @GET("api/v1/search/{job_id}")
-    async fun getJobStatus(
+    suspend fun getJobStatus(
         @Path("job_id") jobId: String
     ): Response<JobStatusResponse>
 
     @GET("api/v1/search/{job_id}/results")
-    async fun getJobResults(
+    suspend fun getJobResults(
         @Path("job_id") jobId: String,
         @Query("page") page: Int = 1,
         @Query("page_size") pageSize: Int = 20,
