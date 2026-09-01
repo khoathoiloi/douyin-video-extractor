@@ -1,0 +1,4 @@
+2026-09-01 13:17:12,606 [INFO] PipelineJobRunner: Starting pipeline for video test_vid_001 (job test_job_001)
+2026-09-01 13:17:19,839 [INFO] PipelineJobRunner: Pipeline completed successfully for video test_vid_001. Found 10 results.
+2026-09-01 13:17:45,118 [INFO] PipelineJobRunner: Starting pipeline for video test_vid_001 (job test_job_001)
+2026-09-01 13:17:51,125 [INFO] PipelineJobRunner: Pipeline completed successfully for video test_vid_001. Found 10 results.

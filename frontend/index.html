@@ -3,24 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Douyin Content Finder - AI Multimodal Video Discovery</title>
+    <title>Douyin Content Finder & AI Video Search</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="app-container">
-        <!-- Header -->
+        <!-- Top Navigation -->
         <header class="app-header">
             <div class="header-logo">
                 <i class="fa-brands fa-tiktok logo-icon"></i>
                 <div class="logo-text">
                     <h1>Douyin Content Finder</h1>
-                    <span class="badge-tag">Multimodal AI Engine</span>
+                    <span class="badge-tag">AI Multi-Layer Search Engine</span>
                 </div>
             </div>
             <div class="header-actions">
-                <span class="status-indicator" id="apiStatus"><i class="fa-solid fa-circle text-success"></i> API Ready</span>
-                <button class="btn btn-outline" id="btnSettings"><i class="fa-solid fa-gear"></i> Cài đặt</button>
+                <span class="status-indicator"><i class="fa-solid fa-circle text-success"></i> System Ready</span>
+                <button class="btn btn-outline" id="btnOpenHistory"><i class="fa-solid fa-clock-rotate-left"></i> Lịch Sử</button>
+                <button class="btn btn-outline" id="btnSettings"><i class="fa-solid fa-gear"></i> Cài Đặt</button>
             </div>
         </header>
 
@@ -28,63 +29,96 @@
         <div class="stepper-container">
             <div class="step-item active" data-step="1">
                 <div class="step-circle">1</div>
-                <div class="step-label">Tải Video Lên</div>
+                <div class="step-label">Nhập Dữ Liệu</div>
             </div>
             <div class="step-line"></div>
             <div class="step-item" data-step="2">
                 <div class="step-circle">2</div>
-                <div class="step-label">Hồ Sơ Phân Tích AI</div>
+                <div class="step-label">Hồ Sơ Đa Tầng AI</div>
             </div>
             <div class="step-line"></div>
             <div class="step-item" data-step="3">
                 <div class="step-circle">3</div>
-                <div class="step-label">20 Từ Khóa Douyin</div>
+                <div class="step-label">Bộ Truy Vấn Phân Nhóm</div>
             </div>
             <div class="step-line"></div>
             <div class="step-item" data-step="4">
                 <div class="step-circle">4</div>
-                <div class="step-label">Kết Quả Video Douyin</div>
+                <div class="step-label">Kết Quả & Bộ Lọc</div>
             </div>
         </div>
 
-        <!-- Main Content Screens -->
+        <!-- MAIN SCREENS -->
         <main class="main-content">
-            <!-- STEP 1: UPLOAD -->
+            <!-- STEP 1: 3 INPUT MODES -->
             <section class="step-section active" id="step1Section">
+                <div class="input-mode-tabs">
+                    <button class="input-tab active" data-tab="upload"><i class="fa-solid fa-cloud-arrow-up"></i> 1. Tải Lên Video File</button>
+                    <button class="input-tab" data-tab="url"><i class="fa-solid fa-link"></i> 2. Dán Link Douyin / TikTok</button>
+                    <button class="input-tab" data-tab="keyword"><i class="fa-solid fa-magnifying-glass"></i> 3. Tìm Keyword Thủ Công</button>
+                </div>
+
                 <div class="upload-card">
-                    <div class="dropzone" id="dropzone">
-                        <i class="fa-solid fa-cloud-arrow-up drop-icon"></i>
-                        <h3>Kéo và thả video vào đây</h3>
-                        <p>Hỗ trợ định dạng .mp4, .mov, .webm, .avi (Tối đa 500MB)</p>
-                        <input type="file" id="videoFileInput" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo" hidden>
-                        <button class="btn btn-primary" onclick="document.getElementById('videoFileInput').click()">
-                            <i class="fa-solid fa-folder-open"></i> Chọn Video từ máy tính
-                        </button>
-                    </div>
-
-                    <div class="upload-details" id="uploadDetails" style="display: none;">
-                        <div class="video-preview-box">
-                            <video id="videoPreview" controls></video>
-                        </div>
-                        <div class="video-meta-box">
-                            <h4 id="videoFileName">video.mp4</h4>
-                            <p id="videoFileSize">0 MB</p>
-                            
-                            <div class="form-group" style="margin-top: 15px;">
-                                <label for="userHintInput">Ghi chú / Định hướng chủ đề (Tùy chọn):</label>
-                                <input type="text" id="userHintInput" class="form-control" placeholder="Ví dụ: Video cô gái nhảy theo nhịp điệu hot trend, review ẩm thực...">
-                            </div>
-
-                            <button class="btn btn-success btn-lg" id="btnStartPipeline" style="margin-top: 15px; width: 100%;">
-                                <i class="fa-solid fa-bolt"></i> Bắt Đầu Phân Tích & Quét Douyin
+                    <!-- Tab A: Upload File -->
+                    <div class="tab-content active" id="tabUpload">
+                        <div class="dropzone" id="dropzone">
+                            <i class="fa-solid fa-file-video drop-icon"></i>
+                            <h3>Kéo thả file video vào đây hoặc chọn từ máy</h3>
+                            <p>Hỗ trợ: .mp4, .mov, .mkv, .webm, .avi (Tối đa 500MB)</p>
+                            <input type="file" id="videoFileInput" accept="video/mp4,video/quicktime,video/x-matroska,video/webm,video/x-msvideo" hidden>
+                            <button class="btn btn-primary" onclick="document.getElementById('videoFileInput').click()">
+                                <i class="fa-solid fa-folder-open"></i> Chọn Video
                             </button>
                         </div>
+                        <div class="upload-details" id="uploadDetails" style="display: none;">
+                            <div class="video-preview-box"><video id="videoPreview" controls></video></div>
+                            <div class="video-meta-box">
+                                <h4 id="videoFileName">video.mp4</h4>
+                                <p id="videoFileSize">0 MB</p>
+                                <div class="form-group" style="margin-top: 15px;">
+                                    <label>Ghi chú / Định hướng chủ đề (Tùy chọn):</label>
+                                    <input type="text" id="userHintInput" class="form-control" placeholder="Ví dụ: Nữ nhảy biến hình theo nhạc hot, review đồ ăn...">
+                                </div>
+                                <div class="mode-options" style="margin-top: 15px;">
+                                    <label><input type="checkbox" id="chkDeepSearchUpload"> 🔥 Bật <strong>DEEP SEARCH</strong> (Tìm sâu 30+ queries, 300+ candidates)</label>
+                                </div>
+                                <button class="btn btn-success btn-lg" id="btnStartUploadPipeline" style="margin-top: 15px; width: 100%;">
+                                    <i class="fa-solid fa-bolt"></i> Bắt Đầu Phân Tích Đa Tầng & Quét Douyin
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Progress Modal / Bar -->
+                    <!-- Tab B: URL Input -->
+                    <div class="tab-content" id="tabUrl" style="display: none;">
+                        <div class="url-input-box">
+                            <i class="fa-solid fa-link url-icon"></i>
+                            <h3>Dán Đường Dẫn Video Douyin hoặc TikTok</h3>
+                            <p>Hỗ trợ link đầy đủ hoặc link rút gọn (douyin.com/video, v.douyin.com, vt.tiktok.com...)</p>
+                            <div class="url-bar-container">
+                                <input type="text" id="douyinUrlInput" class="form-control form-control-lg" placeholder="https://www.douyin.com/video/7268899827364121914 hoặc https://v.douyin.com/xxxx/">
+                                <button class="btn btn-primary btn-lg" id="btnAnalyzeUrl"><i class="fa-solid fa-wand-magic-sparkles"></i> Phân Tích Link</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab C: Manual Keyword -->
+                    <div class="tab-content" id="tabKeyword" style="display: none;">
+                        <div class="url-input-box">
+                            <i class="fa-solid fa-keyboard url-icon"></i>
+                            <h3>Tìm Kiếm Bằng Từ Khóa Tiếng Trung Trực Tiếp</h3>
+                            <p>Không cần video đầu vào, quét nhanh dữ liệu Douyin theo từ khóa bạn nhập</p>
+                            <div class="url-bar-container">
+                                <input type="text" id="manualKeywordInput" class="form-control form-control-lg" placeholder="Ví dụ: 女生变装 (Biến hình nữ), 美食制作 (Làm đồ ăn)...">
+                                <button class="btn btn-success btn-lg" id="btnSearchManualKeyword"><i class="fa-solid fa-magnifying-glass"></i> Tìm Kiếm Ngay</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Realtime Progress Bar -->
                     <div class="progress-box" id="progressBox" style="display: none;">
                         <div class="progress-header">
-                            <span id="progressStageText">Đang khởi tạo pipeline...</span>
+                            <span id="progressStageText">Đang khởi tạo...</span>
                             <span id="progressPercentText">0%</span>
                         </div>
                         <div class="progress-bar-bg">
@@ -95,53 +129,100 @@
                 </div>
             </section>
 
-            <!-- STEP 2: ANALYSIS PROFILE -->
+            <!-- STEP 2: MULTI-LAYER PROFILE -->
             <section class="step-section" id="step2Section">
                 <div class="section-header">
-                    <h2><i class="fa-solid fa-brain"></i> Hồ Sơ Phân Tích Đa Phương Thức (Multimodal Profile)</h2>
-                    <button class="btn btn-primary" onclick="app.goToStep(3)">Tiếp tục: Xem 20 Từ Khóa <i class="fa-solid fa-arrow-right"></i></button>
+                    <h2><i class="fa-solid fa-brain"></i> Hồ Sơ Phân Tích Đa Tầng (Multi-layer Profile)</h2>
+                    <button class="btn btn-primary" onclick="app.goToStep(3)">Xem Bộ Truy Vấn <i class="fa-solid fa-arrow-right"></i></button>
                 </div>
-                
                 <div class="profile-grid" id="profileGrid"></div>
             </section>
 
-            <!-- STEP 3: 20 CHINESE QUERIES -->
+            <!-- STEP 3: TIERED QUERIES -->
             <section class="step-section" id="step3Section">
                 <div class="section-header">
                     <div>
-                        <h2><i class="fa-solid fa-tags"></i> 20 Truy Vấn Tìm Kiếm Tiếng Trung Chuẩn Douyin</h2>
-                        <p class="text-muted">Được AI tối ưu theo 6 danh mục: Chủ đề cốt lõi, Nhân vật, Hành động, Bối cảnh, Định dạng & Long-tail.</p>
+                        <h2><i class="fa-solid fa-tags"></i> Bộ Truy Vấn Tìm Kiếm Phân Tầng (Tiered Queries)</h2>
+                        <p class="text-muted">Chia theo: EXACT, HIGH_SIMILARITY, VISUAL, ACTION, SCENE, TREND & BROAD.</p>
                     </div>
                     <div class="header-btns">
-                        <button class="btn btn-outline" id="btnRegenerateQueries"><i class="fa-solid fa-arrows-rotate"></i> Sinh Lại</button>
-                        <button class="btn btn-success" id="btnSearchQueries"><i class="fa-solid fa-magnifying-glass"></i> Bắt Đầu Quét Video Douyin</button>
+                        <button class="btn btn-success" id="btnExecuteSearch"><i class="fa-solid fa-magnifying-glass"></i> Quét Douyin với Bộ Truy Vấn Này</button>
                     </div>
                 </div>
-
-                <div class="custom-query-box">
-                    <input type="text" id="customQueryInput" class="form-control" placeholder="Thêm từ khóa tiếng Trung tùy chỉnh (ví dụ: 热门舞蹈)...">
-                    <button class="btn btn-primary" id="btnAddCustomQuery"><i class="fa-solid fa-plus"></i> Thêm</button>
-                </div>
-
                 <div class="queries-grid" id="queriesGrid"></div>
             </section>
 
-            <!-- STEP 4: RESULTS -->
+            <!-- STEP 4: RESULTS & ADVANCED FILTER -->
             <section class="step-section" id="step4Section">
-                <div class="section-header">
-                    <div>
-                        <h2><i class="fa-solid fa-square-poll-vertical"></i> Kết Quả Xếp Hạng & Danh Sách Video Douyin</h2>
-                        <p class="text-muted" id="resultsCountText">Đã lọc trùng lặp và xếp hạng đa tiêu chí.</p>
-                    </div>
-                    <div class="header-btns">
-                        <button class="btn btn-outline" id="btnExportExcel"><i class="fa-solid fa-file-excel"></i> Xuất Excel</button>
-                        <button class="btn btn-outline" id="btnCopyAllUrls"><i class="fa-solid fa-copy"></i> Sao Chép Tất Cả Link</button>
+                <div class="results-layout">
+                    <!-- Left: Advanced Filter Panel -->
+                    <aside class="filter-panel">
+                        <h3><i class="fa-solid fa-filter"></i> Bộ Lọc Nâng Cao</h3>
+                        
+                        <div class="filter-group">
+                            <label>Độ tương đồng tối thiểu (Score): <strong id="lblMinScore">70%</strong></label>
+                            <input type="range" id="rngMinScore" min="0" max="100" value="70" class="range-slider">
+                        </div>
+
+                        <div class="filter-group">
+                            <label>Sắp xếp theo:</label>
+                            <select id="selSortBy" class="form-control">
+                                <option value="similarity">Độ khớp tương đồng (Mặc định)</option>
+                                <option value="likes">Lượt Tim (Likes) nhiều nhất</option>
+                                <option value="comments">Lượt Bình Luận nhiều nhất</option>
+                                <option value="shares">Lượt Chia Sẻ nhiều nhất</option>
+                                <option value="newest">Mới nhất</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label>Tối thiểu Lượt Thích (Likes):</label>
+                            <input type="number" id="numMinLikes" class="form-control" placeholder="Ví dụ: 50000" value="0">
+                        </div>
+
+                        <div class="filter-group">
+                            <label>Danh mục nội dung:</label>
+                            <div class="cat-checkboxes">
+                                <label><input type="checkbox" class="chk-cat" value="Dance" checked> Dance</label>
+                                <label><input type="checkbox" class="chk-cat" value="Fashion" checked> Fashion</label>
+                                <label><input type="checkbox" class="chk-cat" value="Beauty" checked> Beauty</label>
+                                <label><input type="checkbox" class="chk-cat" value="Food" checked> Food</label>
+                                <label><input type="checkbox" class="chk-cat" value="Comedy" checked> Comedy</label>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary" id="btnApplyFilters" style="width:100%;"><i class="fa-solid fa-check"></i> Áp Dụng Bộ Lọc</button>
+                    </aside>
+
+                    <!-- Right: Results Grid -->
+                    <div class="results-content">
+                        <div class="section-header">
+                            <div>
+                                <h2 id="resultsCountText">Kết Quả Video Douyin Tương Đồng</h2>
+                                <p class="text-muted">Đã xếp hạng theo công thức 7 chiều & khử trùng lặp.</p>
+                            </div>
+                            <div class="header-btns">
+                                <button class="btn btn-outline" id="btnExportCSV"><i class="fa-solid fa-file-csv"></i> Xuất CSV</button>
+                                <button class="btn btn-outline" id="btnExportJSON"><i class="fa-solid fa-file-code"></i> Xuất JSON</button>
+                                <button class="btn btn-outline" id="btnCopyAll"><i class="fa-solid fa-copy"></i> Copy All Links</button>
+                            </div>
+                        </div>
+                        <div class="results-grid" id="resultsGrid"></div>
                     </div>
                 </div>
-
-                <div class="results-grid" id="resultsGrid"></div>
             </section>
         </main>
+    </div>
+
+    <!-- History Drawer -->
+    <div class="drawer" id="historyDrawer">
+        <div class="drawer-header">
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> Lịch Sử Tìm Kiếm</h3>
+            <button class="close-modal" id="btnCloseHistory">&times;</button>
+        </div>
+        <div class="drawer-body" id="historyList">
+            <p class="text-muted" style="text-align:center; padding:20px;">Đang tải lịch sử...</p>
+        </div>
     </div>
 
     <!-- Settings Modal -->
@@ -154,17 +235,17 @@
             <div class="modal-body">
                 <div class="form-group" style="margin-bottom: 12px;">
                     <label>Google Gemini API Key:</label>
-                    <input type="password" id="cfgGeminiKey" class="form-control" placeholder="Nhập Gemini API Key để kích hoạt Multimodal Vision & ASR...">
+                    <input type="password" id="cfgGeminiKey" class="form-control" placeholder="Nhập API Key để mở khóa toàn bộ tính năng Multimodal AI...">
                 </div>
                 <div class="form-group" style="margin-bottom: 12px;">
                     <label>Douyin Cookie:</label>
-                    <input type="text" id="cfgDouyinCookie" class="form-control" placeholder="Dán cookie Douyin để mở khóa 100% quét không giới hạn...">
+                    <input type="text" id="cfgDouyinCookie" class="form-control" placeholder="Dán cookie Douyin để quét không giới hạn...">
                 </div>
                 <div class="form-group">
                     <label>Search Provider:</label>
                     <select id="cfgSearchProvider" class="form-control">
                         <option value="live">Live Douyin Search Provider</option>
-                        <option value="mock">Mock Search Provider (Kiểm thử offline)</option>
+                        <option value="mock">Mock Provider (Offline Test)</option>
                     </select>
                 </div>
             </div>

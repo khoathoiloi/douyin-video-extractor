@@ -2,20 +2,34 @@ import os
 import uuid
 import json
 import asyncio
+import logging
 from datetime import datetime
 from sqlalchemy.orm import Session
 
 from ..core.models import Video, VideoAnalysis, SearchQuery, SearchResult, Job
 from ..core.config import settings
+from ..video.metadata import VideoMetadataExtractor
+from ..video.keyframes import AdaptiveKeyframeExtractor
 from ..pipeline.video_processor import VideoProcessor
-from ..pipeline.asr_service import ASRService
-from ..pipeline.ocr_service import OCRService
-from ..pipeline.multimodal_analyzer import MultimodalAnalyzer
-from ..pipeline.query_generator import QueryGenerator
-from ..pipeline.ranking_engine import RankingEngine
+from ..ai.asr import VideoASREngine
+from ..ai.ocr import VideoOCREngine
+from ..ai.analyzer import MultiLayerVideoAnalyzer
+from ..douyin.search_strategy import WaterfallSearchStrategy
+from ..ranking.scoring import MultiLayerScoringEngine
 from ..pipeline.reranker import LLMReranker
 from ..pipeline.deduplicator import Deduplicator
 from ..providers.factory import get_search_provider
+
+# Setup logging
+log_dir = os.path.join(settings.BASE_DIR, "logs")
+os.makedirs(log_dir, exist_ok=True)
+log_path = os.path.join(log_dir, "app.log")
+logging.basicConfig(
+    filename=log_path,
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+logger = logging.getLogger("PipelineJobRunner")
 
 class PipelineJobRunner:
     @staticmethod
@@ -30,40 +44,54 @@ class PipelineJobRunner:
             db.commit()
 
     @classmethod
-    async def run_full_pipeline(cls, video_id: str, job_id: str, db: Session, user_hint: str = ""):
+    async def run_full_pipeline(
+        cls,
+        video_id: str,
+        job_id: str,
+        db: Session,
+        user_hint: str = "",
+        deep_search: bool = False
+    ):
         video = db.query(Video).filter(Video.id == video_id).first()
         if not video:
             cls.update_job(db, job_id, "failed", "failed", 0, "Video record not found")
             return
 
         try:
-            # Stage 1: Processing Video (15%)
+            logger.info(f"Starting pipeline for video {video_id} (job {job_id})")
+
+            # Stage 1: Video Metadata & Keyframes (15%)
             cls.update_job(db, job_id, "processing", "in_progress", 15)
-            video_dir = os.path.dirname(video.file_path)
+            has_video_file = os.path.exists(video.file_path) and os.path.getsize(video.file_path) > 1024
+
+            video_dir = os.path.dirname(video.file_path) if has_video_file else settings.UPLOAD_DIR
             frames_dir = os.path.join(video_dir, f"frames_{video.id}")
             audio_path = os.path.join(video_dir, f"audio_{video.id}.mp3")
 
-            meta = VideoProcessor.get_video_metadata(video.file_path)
+            meta = VideoMetadataExtractor.extract(video.file_path) if has_video_file else {"duration": 15.0, "fps": 30.0, "has_audio": True}
             video.duration = meta.get("duration", 0)
             video.width = meta.get("width", 0)
             video.height = meta.get("height", 0)
             db.commit()
 
-            frame_paths = VideoProcessor.extract_frames(video.file_path, frames_dir, num_frames=5)
-            extracted_audio = VideoProcessor.extract_audio(video.file_path, audio_path)
+            keyframe_items = []
+            extracted_audio = ""
+            if has_video_file:
+                keyframe_items = AdaptiveKeyframeExtractor.extract_adaptive_keyframes(video.file_path, frames_dir, max_frames=8)
+                extracted_audio = VideoProcessor.extract_audio(video.file_path, audio_path)
 
-            # Stage 2: Analyzing (40%)
+            # Stage 2: ASR, OCR, MultiLayer Vision Analysis (40%)
             cls.update_job(db, job_id, "analyzing", "in_progress", 40)
-            asr_res = ASRService.transcribe(extracted_audio, api_key=settings.GEMINI_API_KEY)
-            ocr_texts = OCRService.extract_ocr_from_frames(frame_paths, api_key=settings.GEMINI_API_KEY)
+            asr_res = VideoASREngine.transcribe_audio(extracted_audio, api_key=settings.GEMINI_API_KEY)
+            ocr_items = VideoOCREngine.extract_text(keyframe_items, api_key=settings.GEMINI_API_KEY)
 
-            profile = MultimodalAnalyzer.analyze(
-                frame_paths=frame_paths,
-                transcript_data=asr_res,
-                ocr_texts=ocr_texts,
-                api_key=settings.GEMINI_API_KEY,
-                provider=settings.AI_PROVIDER,
-                user_hint=user_hint
+            profile = MultiLayerVideoAnalyzer.analyze(
+                keyframe_items=keyframe_items,
+                ocr_items=ocr_items,
+                asr_data=asr_res,
+                metadata=meta,
+                user_hint=user_hint,
+                api_key=settings.GEMINI_API_KEY
             )
 
             # Save Analysis Profile
@@ -73,93 +101,84 @@ class PipelineJobRunner:
                 db.add(analysis)
 
             analysis.summary = profile.get("summary", "")
-            analysis.main_topic = profile.get("main_topic", "")
-            analysis.secondary_topics = json.dumps(profile.get("secondary_topics", []), ensure_ascii=False)
-            analysis.people = json.dumps(profile.get("people", []), ensure_ascii=False)
-            analysis.objects = json.dumps(profile.get("objects", []), ensure_ascii=False)
+            analysis.main_topic = profile.get("categories", ["General"])[0] if profile.get("categories") else "General"
+            analysis.secondary_topics = json.dumps(profile.get("categories", []), ensure_ascii=False)
+            analysis.people = json.dumps(profile.get("subjects", []), ensure_ascii=False)
+            analysis.objects = json.dumps(profile.get("appearance", []), ensure_ascii=False)
             analysis.actions = json.dumps(profile.get("actions", []), ensure_ascii=False)
-            analysis.locations = json.dumps(profile.get("locations", []), ensure_ascii=False)
-            analysis.products = json.dumps(profile.get("products", []), ensure_ascii=False)
-            analysis.brands = json.dumps(profile.get("brands", []), ensure_ascii=False)
-            analysis.spoken_language = profile.get("spoken_language", "vi")
-            analysis.transcript = profile.get("transcript", "")
-            analysis.ocr_text = json.dumps(profile.get("ocr_text", []), ensure_ascii=False)
-            analysis.visual_style = json.dumps(profile.get("visual_style", []), ensure_ascii=False)
-            analysis.camera_style = json.dumps(profile.get("camera_style", []), ensure_ascii=False)
-            analysis.content_format = profile.get("content_format", "")
+            analysis.locations = json.dumps(profile.get("environment", []), ensure_ascii=False)
+            analysis.products = json.dumps(profile.get("appearance", []), ensure_ascii=False)
+            analysis.brands = json.dumps(profile.get("keywords", {}).get("trend", []), ensure_ascii=False)
+            analysis.spoken_language = asr_res.get("language", "vi")
+            analysis.transcript = asr_res.get("transcript", "")
+            analysis.ocr_text = json.dumps([o.get("text") for o in ocr_items if isinstance(o, dict)], ensure_ascii=False)
+            analysis.visual_style = json.dumps(profile.get("keywords", {}).get("style", []), ensure_ascii=False)
+            analysis.camera_style = json.dumps(profile.get("camera", []), ensure_ascii=False)
+            analysis.content_format = profile.get("categories", ["General"])[0] if profile.get("categories") else "General"
             analysis.emotional_tone = json.dumps(profile.get("emotional_tone", []), ensure_ascii=False)
-            analysis.narrative_structure = profile.get("narrative_structure", "")
-            analysis.key_moments = json.dumps(profile.get("key_moments", []), ensure_ascii=False)
-            analysis.search_concepts = json.dumps(profile.get("search_concepts", []), ensure_ascii=False)
+            analysis.search_concepts = json.dumps(profile.get("keywords", {}).get("primary", []), ensure_ascii=False)
             db.commit()
 
-            # Stage 3: Generating Queries (60%)
+            # Stage 3: Tiered Chinese Queries (60%)
             cls.update_job(db, job_id, "generating_queries", "in_progress", 60)
-            raw_queries = QueryGenerator.generate_20_queries(profile, api_key=settings.GEMINI_API_KEY)
-            
-            # Clear old queries
+            queries_dict = profile.get("queries", {})
+
             db.query(SearchQuery).filter(SearchQuery.video_id == video.id).delete()
-            
-            query_objects = []
-            for q in raw_queries:
-                variants = QueryGenerator.expand_query(q["query"])
-                sq = SearchQuery(
-                    id=str(uuid.uuid4()),
-                    video_id=video.id,
-                    query=q["query"],
-                    category=q.get("category", "core_topic"),
-                    reason=q.get("reason", ""),
-                    score=float(q.get("score", 0.9)),
-                    is_enabled=True,
-                    is_custom=False,
-                    expanded_variants=json.dumps(variants, ensure_ascii=False)
-                )
-                db.add(sq)
-                query_objects.append(sq)
+
+            for category, q_list in queries_dict.items():
+                for q_text in q_list:
+                    sq = SearchQuery(
+                        id=str(uuid.uuid4()),
+                        video_id=video.id,
+                        query=q_text,
+                        category=category,
+                        reason=f"Nhóm truy vấn {category}",
+                        score=0.95 if category in ["exact", "high_similarity"] else 0.85,
+                        is_enabled=True,
+                        is_custom=False,
+                        expanded_variants=json.dumps([], ensure_ascii=False)
+                    )
+                    db.add(sq)
             db.commit()
 
-            # Stage 4: Searching Douyin (75%)
+            # Stage 4: 4-Phase Waterfall Search & Candidate Collection (75%)
             cls.update_job(db, job_id, "searching", "in_progress", 75)
             provider = get_search_provider()
-            raw_candidates = []
+            candidates = await WaterfallSearchStrategy.execute_search(
+                queries_by_tier=queries_dict,
+                provider=provider,
+                deep_search=deep_search,
+                max_candidates=100
+            )
 
-            # Search top 5 enabled queries
-            active_queries = [q for q in query_objects if q.is_enabled][:5]
-            for sq in active_queries:
-                cand_list = await provider.search(sq.query, limit=10)
-                for c in cand_list:
-                    raw_candidates.append({
-                        "video_id": video.id,
-                        "query_id": sq.id,
-                        "platform": c.platform,
-                        "remote_video_id": c.video_id,
-                        "url": c.url,
-                        "author": c.author,
-                        "title": c.title,
-                        "description": c.description,
-                        "hashtags": c.hashtags,
-                        "cover_url": c.cover_url,
-                        "publish_time": c.publish_time,
-                        "like_count": c.like_count,
-                        "comment_count": c.comment_count,
-                        "share_count": c.share_count,
-                        "search_query": sq.query
-                    })
-
-            # Stage 5: Ranking & Deduplication (90%)
+            # Stage 5: Multi-layer Similarity Scoring & Re-ranking (90%)
             cls.update_job(db, job_id, "ranking", "in_progress", 90)
-            
-            # Score each candidate
-            for cand in raw_candidates:
-                scores = RankingEngine.calculate_scores(profile, cand)
-                cand["relevance_score"] = scores["semantic_similarity"]
-                cand["final_score"] = scores["final_score"]
+            candidate_dicts = []
+            for c in candidates:
+                cand_d = {
+                    "video_id": video.id,
+                    "platform": c.platform,
+                    "remote_video_id": c.video_id,
+                    "url": c.url,
+                    "author": c.author,
+                    "title": c.title,
+                    "description": c.description,
+                    "hashtags": c.hashtags,
+                    "cover_url": c.cover_url,
+                    "publish_time": c.publish_time,
+                    "like_count": c.like_count,
+                    "comment_count": c.comment_count,
+                    "share_count": c.share_count,
+                    "search_query": c.search_query
+                }
+                score_info = MultiLayerScoringEngine.calculate_score(profile, cand_d)
+                cand_d["relevance_score"] = score_info["final_score"]
+                cand_d["final_score"] = score_info["final_score"]
+                cand_d["score_pct"] = score_info["score_pct"]
+                candidate_dicts.append(cand_d)
 
-            # Deduplicate
-            unique_candidates = Deduplicator.deduplicate(raw_candidates)
-
-            # LLM Reranking on Top 30
-            reranked = LLMReranker.rerank_candidates(profile, unique_candidates, top_n=30, api_key=settings.GEMINI_API_KEY)
+            # LLM Reranker on Top 30
+            reranked = LLMReranker.rerank_candidates(profile, candidate_dicts, top_n=30, api_key=settings.GEMINI_API_KEY)
 
             # Save Results
             db.query(SearchResult).filter(SearchResult.video_id == video.id).delete()
@@ -167,7 +186,6 @@ class PipelineJobRunner:
                 sr = SearchResult(
                     id=str(uuid.uuid4()),
                     video_id=video.id,
-                    query_id=r.get("query_id", ""),
                     platform=r.get("platform", "douyin"),
                     remote_video_id=r.get("remote_video_id", ""),
                     url=r.get("url", ""),
@@ -188,16 +206,14 @@ class PipelineJobRunner:
             db.commit()
 
             # Clean temporary frame files
-            try:
+            if os.path.exists(frames_dir):
                 for f in os.listdir(frames_dir):
                     os.remove(os.path.join(frames_dir, f))
                 os.rmdir(frames_dir)
-            except Exception:
-                pass
 
-            # Stage 6: Completed (100%)
             cls.update_job(db, job_id, "completed", "completed", 100)
+            logger.info(f"Pipeline completed successfully for video {video_id}. Found {len(reranked)} results.")
 
         except Exception as e:
-            print(f"[PipelineJobRunner] Error: {e}")
+            logger.error(f"Pipeline failed for video {video_id}: {e}", exc_info=True)
             cls.update_job(db, job_id, "failed", "failed", 0, str(e))
