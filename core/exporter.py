@@ -12,15 +12,15 @@ import pandas as pd
 from typing import List, Dict, Any, Callable, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-class DouyinExporter:
-    """
-    Handles data exporting and high-speed multi-threaded video downloading.
-    """
+MOBILE_USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
 
+class DouyinExporter:
     @staticmethod
     def export_to_excel(videos: List[Dict[str, Any]], filepath: str) -> str:
         rows = []
         for i, v in enumerate(videos, 1):
+            web_link = v.get("web_url") or v.get("share_url") or f"https://www.douyin.com/video/{v.get('aweme_id')}"
+            download_link = v.get("video_no_watermark_url") or web_link
             rows.append({
                 "STT": i,
                 "ID Video": v.get("aweme_id", ""),
@@ -31,8 +31,8 @@ class DouyinExporter:
                 "Lượt Chia sẻ": v.get("share_count", 0),
                 "Thời lượng (giây)": v.get("duration", 0),
                 "Thời gian đăng": v.get("create_time", ""),
-                "Link Douyin Gốc": v.get("share_url", ""),
-                "Link Video HD Không Logo": v.get("video_no_watermark_url", ""),
+                "Link Xem Trên Web (Click Xem Ngay)": web_link,
+                "Link Tải Video Không Logo": download_link,
                 "Hashtags": " ".join(v.get("hashtags", []))
             })
 
@@ -44,11 +44,13 @@ class DouyinExporter:
 
     @staticmethod
     def export_to_csv(videos: List[Dict[str, Any]], filepath: str) -> str:
-        keys = ["STT", "ID", "Title", "Author", "Likes", "Comments", "Shares", "Duration_Sec", "Publish_Time", "Douyin_URL", "No_Watermark_URL"]
+        keys = ["STT", "ID", "Title", "Author", "Likes", "Comments", "Shares", "Duration_Sec", "Publish_Time", "Web_Watch_URL", "Download_URL"]
         with open(filepath, "w", newline="", encoding="utf-8-sig") as f:
             writer = csv.writer(f)
             writer.writerow(keys)
             for i, v in enumerate(videos, 1):
+                web_link = v.get("web_url") or v.get("share_url") or f"https://www.douyin.com/video/{v.get('aweme_id')}"
+                download_link = v.get("video_no_watermark_url") or web_link
                 writer.writerow([
                     i,
                     v.get("aweme_id", ""),
@@ -59,22 +61,24 @@ class DouyinExporter:
                     v.get("share_count", 0),
                     v.get("duration", 0),
                     v.get("create_time", ""),
-                    v.get("share_url", ""),
-                    v.get("video_no_watermark_url", "")
+                    web_link,
+                    download_link
                 ])
         return filepath
 
     @staticmethod
-    def export_to_txt(videos: List[Dict[str, Any]], filepath: str, only_links: bool = True) -> str:
+    def export_to_txt(videos: List[Dict[str, Any]], filepath: str, only_links: bool = False) -> str:
         with open(filepath, "w", encoding="utf-8") as f:
             for i, v in enumerate(videos, 1):
+                web_link = v.get("web_url") or v.get("share_url") or f"https://www.douyin.com/video/{v.get('aweme_id')}"
+                download_link = v.get("video_no_watermark_url") or web_link
                 if only_links:
-                    url = v.get("video_no_watermark_url") or v.get("share_url") or ""
-                    f.write(str(url) + "\n")
+                    f.write(str(web_link) + "\n")
                 else:
                     f.write(f"[{i}] {v.get('title', '')}\n")
-                    f.write(f"    Author: {v.get('author_name', '')} | Likes: {v.get('digg_count', 0):,}\n")
-                    f.write(f"    Link HD: {v.get('video_no_watermark_url', '')}\n\n")
+                    f.write(f"    Tác giả: {v.get('author_name', '')} | Likes: {v.get('digg_count', 0):,}\n")
+                    f.write(f"    Link xem Web: {web_link}\n")
+                    f.write(f"    Link tải HD : {download_link}\n\n")
         return filepath
 
     @staticmethod
@@ -85,17 +89,15 @@ class DouyinExporter:
         filename = f"{aweme_id}_{safe_title}.mp4"
         filepath = os.path.join(output_dir, filename)
 
-        video_url = video.get("video_no_watermark_url") or video.get("share_url")
-        if not video_url:
-            return {"success": False, "id": aweme_id, "error": "No URL found"}
+        video_url = video.get("video_no_watermark_url") or f"https://aweme.snssdk.com/aweme/v1/play/?video_id={aweme_id}&ratio=1080p&line=0"
 
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "User-Agent": MOBILE_USER_AGENT,
             "Referer": "https://www.douyin.com/"
         }
 
         try:
-            resp = requests.get(video_url, headers=headers, stream=True, timeout=20)
+            resp = requests.get(video_url, headers=headers, stream=True, allow_redirects=True, timeout=20)
             if resp.status_code == 200:
                 with open(filepath, "wb") as f:
                     for chunk in resp.iter_content(chunk_size=65536):

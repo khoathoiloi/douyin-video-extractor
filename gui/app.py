@@ -625,10 +625,10 @@ class DouyinExtractorApp(ctk.CTk):
         if not self.filtered_videos:
             messagebox.showwarning("Thông báo", "Chưa có dữ liệu video để sao chép.")
             return
-        links = [v.get("video_no_watermark_url") or v.get("share_url") for v in self.filtered_videos]
+        links = [v.get("web_url") or f"https://www.douyin.com/video/{v.get('aweme_id')}" for v in self.filtered_videos]
         self.clipboard_clear()
         self.clipboard_append("\n".join(links))
-        messagebox.showinfo("Thành công", f"Đã sao chép {len(links)} link video không logo vào Clipboard!")
+        messagebox.showinfo("Thành công", f"Đã sao chép {len(links)} link xem video Douyin (mở được ngay trên trình duyệt) vào Clipboard!")
 
     def _on_start_batch_download(self):
         if not self.filtered_videos:
