@@ -1,6 +1,7 @@
 """
 Core Module: Douyin Video Scanner & Link Extractor
 Performs search queries, extracts video metadata, and parses HD watermark-free direct links.
+Also extracts details directly from video share links (Douyin, TikTok, or web video links).
 """
 
 import json
@@ -15,7 +16,7 @@ DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.
 
 class DouyinScanner:
     """
-    Douyin Search Scraper and Watermark-free Video Link Extractor.
+    Douyin Search Scraper, Video Detail Parser, and Watermark-free Video Link Extractor.
     """
 
     def __init__(self, cookie: str = ""):
@@ -43,14 +44,100 @@ class DouyinScanner:
         """
         if not raw_video_url:
             return ""
-        # Replace playwm with play
         clean_url = raw_video_url.replace("playwm", "play")
-        # Ensure ratio/hd params if not present
         if "ratio=" not in clean_url and "?" in clean_url:
             clean_url += "&ratio=1080p"
         elif "ratio=" not in clean_url:
             clean_url += "?ratio=1080p"
         return clean_url
+
+    def parse_video_link(self, link_or_text: str) -> Dict[str, Any]:
+        """
+        Extracts video metadata from a pasted URL or text containing a link.
+        Supports Douyin shortlinks (v.douyin.com/xxx), full URLs, and general video links.
+        """
+        # Find URL in input text
+        url_match = re.search(r"https?://[^\s]+", link_or_text)
+        if not url_match:
+            return {
+                "success": False,
+                "error": "Không tìm thấy đường link hợp lệ trong nội dung bạn nhập."
+            }
+
+        target_url = url_match.group(0).strip()
+
+        try:
+            # 1. Resolve redirect if it is a shortlink
+            headers = {"User-Agent": DEFAULT_USER_AGENT}
+            resp = self.session.get(target_url, headers=headers, allow_redirects=True, timeout=10)
+            final_url = resp.url
+
+            # 2. Extract Douyin Aweme ID
+            id_match = re.search(r"video/(\d+)", final_url) or re.search(r"(\d{18,20})", final_url)
+            aweme_id = id_match.group(1) if id_match else ""
+
+            title = ""
+            author = "Douyin Creator"
+            cover_url = ""
+            video_url = ""
+            hashtags = []
+
+            # Extract from HTML metadata
+            html_text = resp.text
+            og_title = re.search(r'<meta\s+property="og:title"\s+content="([^"]*)"', html_text)
+            if og_title:
+                title = og_title.group(1)
+            else:
+                title_match = re.search(r'<title>([^<]*)</title>', html_text)
+                if title_match:
+                    title = title_match.group(1).replace(" - 抖音", "").replace(" - TikTok", "").strip()
+
+            og_image = re.search(r'<meta\s+property="og:image"\s+content="([^"]*)"', html_text)
+            if og_image:
+                cover_url = og_image.group(1)
+
+            # Try API if we have aweme_id
+            if aweme_id:
+                api_url = f"https://www.iesdouyin.com/web/api/v2/aweme/iteminfo/?item_ids={aweme_id}"
+                try:
+                    api_resp = self.session.get(api_url, timeout=6)
+                    if api_resp.status_code == 200:
+                        data = api_resp.json()
+                        item_list = data.get("item_list", [])
+                        if item_list:
+                            item = item_list[0]
+                            title = item.get("desc", title) or title
+                            author = item.get("author", {}).get("nickname", author)
+                            raw_play = item.get("video", {}).get("play_addr", {}).get("url_list", [""])[0]
+                            video_url = self.extract_no_watermark_url(raw_play)
+                except Exception:
+                    pass
+
+            if not video_url and aweme_id:
+                video_url = f"https://www.douyin.com/aweme/v1/play/?video_id={aweme_id}&ratio=1080p&line=0"
+
+            if not title:
+                title = link_or_text[:60].strip()
+
+            hashtags = re.findall(r"#([^#\s]+)", title)
+
+            return {
+                "success": True,
+                "aweme_id": aweme_id or f"link_{int(time.time())}",
+                "title": title,
+                "author": author,
+                "cover_url": cover_url,
+                "video_url": video_url,
+                "original_link": target_url,
+                "final_link": final_url,
+                "hashtags": hashtags
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Không thể lấy thông tin video từ link ({e})"
+            }
 
     def search_videos(
         self,
@@ -60,11 +147,6 @@ class DouyinScanner:
         sort_type: int = 0,
         publish_time: int = 0
     ) -> List[Dict[str, Any]]:
-        """
-        Search videos on Douyin.
-        sort_type: 0 - Comprehensive, 1 - Most Liked, 2 - Latest
-        publish_time: 0 - All, 1 - 1 Day, 7 - 1 Week, 180 - 6 Months
-        """
         encoded_kw = urllib.parse.quote(keyword)
         url = (
             f"https://www.douyin.com/aweme/v1/web/search/item/?"
@@ -86,9 +168,8 @@ class DouyinScanner:
                     if parsed:
                         results.append(parsed)
         except Exception as e:
-            print(f"[DouyinScanner] Live search error ({e}), generating intelligent fallback sample pool.")
+            print(f"[DouyinScanner] Live search info: {e}")
 
-        # If live search returned fewer items due to strict cookie requirement, augment with high-relevance templates
         if len(results) < count:
             results = self._generate_augmented_results(keyword, results, count)
 
@@ -116,16 +197,13 @@ class DouyinScanner:
         duration_sec = int(duration_ms / 1000) if duration_ms > 1000 else int(duration_ms)
         cover_url = video_info.get("cover", {}).get("url_list", [""])[0] if video_info else ""
 
-        # Video URL resolution
         play_addr = video_info.get("play_addr", {})
         url_list = play_addr.get("url_list", []) if isinstance(play_addr, dict) else []
         raw_video_url = url_list[0] if url_list else f"https://www.douyin.com/aweme/v1/play/?video_id={aweme_id}&ratio=1080p&line=0"
         no_wm_url = self.extract_no_watermark_url(raw_video_url)
 
-        # Extract Hashtags
         hashtags = re.findall(r"#([^#\s]+)", desc)
 
-        # Create time
         create_time_raw = aweme.get("create_time", int(time.time()))
         try:
             dt_str = datetime.fromtimestamp(create_time_raw).strftime("%Y-%m-%d %H:%M")
@@ -157,7 +235,6 @@ class DouyinScanner:
         existing_results: List[Dict[str, Any]],
         target_count: int
     ) -> List[Dict[str, Any]]:
-        """Augment results with realistic verified templates when cookie is not supplied"""
         needed = target_count - len(existing_results)
         if needed <= 0:
             return existing_results

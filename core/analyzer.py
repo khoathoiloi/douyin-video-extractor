@@ -1,6 +1,6 @@
 """
 Core Module: AI Video & Content Analyzer for Douyin
-Analyzes video ideas, descriptions, themes, and generates optimized Chinese keywords & hashtags for Douyin search algorithms.
+Analyzes video ideas, descriptions, themes, or direct video URLs, and generates optimized Chinese keywords & hashtags for Douyin search algorithms.
 """
 
 import json
@@ -90,17 +90,46 @@ class DouyinAIAnalyzer:
                 elif self.provider == "openai":
                     return self._call_openai_ai(input_text, niche_hint, max_keywords)
             except Exception as e:
-                # Log and fallback to offline engine
-                print(f"[Analyzer] API Call failed: {e}, falling back to Offline Engine.")
+                print(f"[Analyzer] API Call failed ({e}), falling back to Offline Engine.")
 
         return self._generate_offline_prompts(input_text, niche_hint, max_keywords)
+
+    def analyze_video_url(
+        self,
+        video_url_or_text: str,
+        scanner_instance = None,
+        niche_hint: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Takes a video URL (Douyin, TikTok, etc.), extracts its title, description and hashtags,
+        and generates optimized Chinese Douyin search keywords.
+        """
+        from core.douyin_scanner import DouyinScanner
+        scanner = scanner_instance or DouyinScanner()
+
+        # Step 1: Extract Video Metadata from Link
+        parsed_link = scanner.parse_video_link(video_url_or_text)
+        if not parsed_link.get("success", False):
+            # If not a link, treat as regular text prompt
+            return self.analyze_and_generate_prompts(video_url_or_text, niche_hint)
+
+        video_title = parsed_link.get("title", "")
+        video_author = parsed_link.get("author", "")
+        hashtags = parsed_link.get("hashtags", [])
+
+        summary_text = f"Tiêu đề video mẫu: {video_title}. Tác giả: {video_author}. Hashtags: {' '.join(hashtags)}"
+
+        # Step 2: Run Analysis & Keyword Generation
+        analysis_result = self.analyze_and_generate_prompts(summary_text, niche_hint)
+        analysis_result["parsed_video"] = parsed_link
+        return analysis_result
 
     def _call_gemini_ai(self, input_text: str, niche_hint: Optional[str], max_keywords: int) -> Dict[str, Any]:
         prompt = f"""
 Bạn là chuyên gia phân tích nội dung viral trên Douyin (TikTok Trung Quốc).
-Nhiệm vụ: Phân tích nội dung/video dưới đây và tạo ra các từ khóa tìm kiếm tiếng Trung tối ưu nhất cho thuật toán Douyin.
+Nhiệm vụ: Phân tích nội dung/video mẫu dưới đây và tạo ra các từ khóa tìm kiếm tiếng Trung tối ưu nhất cho thuật toán Douyin.
 
-Nội dung mô tả / Ý tưởng:
+Nội dung mô tả / Video mẫu:
 {input_text}
 Chủ đề gợi ý: {niche_hint or 'Tự động'}
 

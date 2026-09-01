@@ -92,7 +92,7 @@ class DouyinExtractorApp(ctk.CTk):
 
         self.version_label = ctk.CTkLabel(
             self.sidebar_frame,
-            text="AI Discovery & Filter v1.0",
+            text="AI Link & Discovery Filter v1.2",
             font=ctk.CTkFont(size=12),
             text_color="gray"
         )
@@ -100,7 +100,7 @@ class DouyinExtractorApp(ctk.CTk):
 
         # Navigation buttons
         self.nav_btn_ai = ctk.CTkButton(
-            self.sidebar_frame, text="🧠 AI Sinh Từ Khóa", command=lambda: self._select_tab("ai"),
+            self.sidebar_frame, text="🧠 AI Link & Từ Khóa", command=lambda: self._select_tab("ai"),
             height=40, font=ctk.CTkFont(size=14)
         )
         self.nav_btn_ai.grid(row=2, column=0, padx=15, pady=8, sticky="ew")
@@ -197,10 +197,10 @@ class DouyinExtractorApp(ctk.CTk):
         input_box.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
         input_box.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(input_box, text="Mô tả nội dung / Video:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
-        self.ai_input_text = ctk.CTkTextbox(input_box, height=80)
-        self.ai_input_text.grid(row=0, column=1, columnspan=3, padx=10, pady=10, sticky="ew")
-        self.ai_input_text.insert("0.0", "Video hài hước tình huống bất ngờ, drama công sở ngắn, có cú lừa gây cười mạnh")
+        ctk.CTkLabel(input_box, text="Dán Link Video / Mô tả:", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, padx=10, pady=8, sticky="w")
+        self.ai_input_text = ctk.CTkTextbox(input_box, height=75)
+        self.ai_input_text.grid(row=0, column=1, columnspan=3, padx=10, pady=8, sticky="ew")
+        self.ai_input_text.insert("0.0", "https://v.douyin.com/iR3qXYZ/ 7.89 复制打开抖音，看看【搞笑短剧】 (hoặc dán link video bất kỳ)")
 
         ctk.CTkLabel(input_box, text="Chủ đề gợi ý:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
         niche_names = ["Tự động phát hiện"] + [v["name"] for v in DOUYIN_TAXONOMY.values()]
@@ -260,7 +260,7 @@ class DouyinExtractorApp(ctk.CTk):
                     niche_key = k
                     break
 
-            res = self.analyzer.analyze_and_generate_prompts(user_text, niche_hint=niche_key)
+            res = self.analyzer.analyze_video_url(user_text, scanner_instance=self.scanner, niche_hint=niche_key)
             self.after(0, lambda: self._display_ai_result(res))
 
         threading.Thread(target=_worker, daemon=True).start()
@@ -279,7 +279,16 @@ class DouyinExtractorApp(ctk.CTk):
         hashtags = res.get("hashtags", [])
         meaning = res.get("vietnamese_meaning", {})
 
-        output_str = f"=== PHÂN TÍCH TỪ KHÓA DOUYIN (Nguồn: {source}) ===\n\n"
+        parsed_vid = res.get("parsed_video", {})
+        output_str = f"=== KẾT QUẢ PHÂN TÍCH TỪ KHÓA DOUYIN (Nguồn: {source}) ===\n\n"
+        if parsed_vid and parsed_vid.get("success"):
+            output_str += "🎬 THÔNG TIN VIDEO MẪU TỪ LINK:\n"
+            output_str += f"   • Tiêu đề: {parsed_vid.get('title')}\n"
+            output_str += f"   • Tác giả: {parsed_vid.get('author')}\n"
+            output_str += f"   • Link gốc: {parsed_vid.get('original_link')}\n"
+            if parsed_vid.get('video_url'):
+                output_str += f"   • Link Video HD No-WM: {parsed_vid.get('video_url')}\n"
+            output_str += "\n" 
         output_str += f"🔥 TỪ KHÓA CHÍNH (Main Query): {main_kw}\n"
         if meaning.get("main_query_vi"):
             output_str += f"   ➤ Ý nghĩa: {meaning.get('main_query_vi')}\n\n"
