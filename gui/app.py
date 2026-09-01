@@ -204,7 +204,7 @@ class DouyinExtractorApp(ctk.CTk):
 
         ctk.CTkLabel(input_box, text="Chủ đề gợi ý:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
         niche_names = ["Tự động phát hiện"] + [v["name"] for v in DOUYIN_TAXONOMY.values()]
-        self.niche_combo = ctk.CTkComboBox(input_box, values=niche_names, width=280)
+        self.niche_combo = ctk.CTkComboBox(input_box, values=niche_names, width=320)
         self.niche_combo.set("Tự động phát hiện")
         self.niche_combo.grid(row=1, column=1, padx=10, pady=10, sticky="w")
 

@@ -10,6 +10,11 @@ import urllib.parse
 from typing import List, Dict, Any, Optional
 
 DOUYIN_TAXONOMY = {
+    "dance_hotgirl": {
+        "name": "Nhảy / Vũ đạo / Gái xinh / Dance Cover",
+        "keywords": ["抖音热舞", "热门卡点舞", "美女跳舞", "变装跳舞", "魔性舞蹈", "女团舞翻跳", "踩点热舞", "慢摇舞", "性感热舞"],
+        "hashtags": ["#热舞", "#美女跳舞", "#卡点舞", "#翻跳", "#舞蹈", "#心动女嘉宾", "#变装"]
+    },
     "drama_funny": {
         "name": "Hài hước / Drama / Tiểu phẩm",
         "keywords": ["搞笑短剧", "沙雕日常", "反转剧情", "爆笑名场面", "幽默段子", "戏精日常", "搞笑配音", "大冤种日常"],
@@ -26,7 +31,7 @@ DOUYIN_TAXONOMY = {
         "hashtags": ["#美食", "#一人食", "#我的美食日记", "#街头小吃", "#学做菜", "#吃货日常"]
     },
     "beauty_fashion": {
-        "name": "Làm đẹp / Thời trang / Makeup",
+        "name": "Làm đẹp / Thời trang / Makeup / Gái đẹp",
         "keywords": ["沉浸式护肤", "新手化妆教程", "变装卡点", "显瘦穿搭", "氛围感妆容", "平价好物分享", "高级感穿搭"],
         "hashtags": ["#变装", "#沉浸式护肤", "#每日穿搭", "#化妆教程", "#变美秘籍", "#秋冬穿搭"]
     },
@@ -55,10 +60,10 @@ DOUYIN_TAXONOMY = {
         "keywords": ["居家减脂运动", "暴汗燃脂教程", "马甲线训练", "新手健身指南", "拉伸塑形", "高效瘦身"],
         "hashtags": ["#健身", "#减脂打卡", "#居家健身", "#瘦肚子", "#塑形"]
     },
-    "life_hacks": {
-        "name": "Mẹo vặt cuộc sống / Gia đình",
-        "keywords": ["生活实用小妙招", "家居收纳整理", "清洁小妙招", "省钱小技巧", "厨房实用小妙招"],
-        "hashtags": ["#生活小妙招", "#收纳整理", "#居家好帮手", "#省钱秘籍"]
+    "military_aviation": {
+        "name": "Quân sự / Máy bay / Vũ khí / Lịch sử",
+        "keywords": ["战斗机起飞", "军用飞机大片", "米格战机", "空战名场面", "军事航空", "大国重器", "硬核军事"],
+        "hashtags": ["#军事", "#战斗机", "#空军", "#硬核", "#军事科普"]
     }
 }
 
@@ -100,26 +105,19 @@ class DouyinAIAnalyzer:
         scanner_instance = None,
         niche_hint: Optional[str] = None
     ) -> Dict[str, Any]:
-        """
-        Takes a video URL (Douyin, TikTok, etc.), extracts its title, description and hashtags,
-        and generates optimized Chinese Douyin search keywords.
-        """
         from core.douyin_scanner import DouyinScanner
         scanner = scanner_instance or DouyinScanner()
 
-        # Step 1: Extract Video Metadata from Link
         parsed_link = scanner.parse_video_link(video_url_or_text)
         if not parsed_link.get("success", False):
-            # If not a link, treat as regular text prompt
             return self.analyze_and_generate_prompts(video_url_or_text, niche_hint)
 
         video_title = parsed_link.get("title", "")
         video_author = parsed_link.get("author", "")
         hashtags = parsed_link.get("hashtags", [])
 
-        summary_text = f"Tiêu đề video mẫu: {video_title}. Tác giả: {video_author}. Hashtags: {' '.join(hashtags)}"
+        summary_text = f"{video_title} (Tác giả: {video_author}) {' '.join(hashtags)}"
 
-        # Step 2: Run Analysis & Keyword Generation
         analysis_result = self.analyze_and_generate_prompts(summary_text, niche_hint)
         analysis_result["parsed_video"] = parsed_link
         return analysis_result
@@ -127,9 +125,9 @@ class DouyinAIAnalyzer:
     def _call_gemini_ai(self, input_text: str, niche_hint: Optional[str], max_keywords: int) -> Dict[str, Any]:
         prompt = f"""
 Bạn là chuyên gia phân tích nội dung viral trên Douyin (TikTok Trung Quốc).
-Nhiệm vụ: Phân tích nội dung/video mẫu dưới đây và tạo ra các từ khóa tìm kiếm tiếng Trung tối ưu nhất cho thuật toán Douyin.
+Nhiệm vụ: Phân tích nội dung/video dưới đây và tạo ra các từ khóa tìm kiếm tiếng Trung tối ưu nhất cho thuật toán Douyin.
 
-Nội dung mô tả / Video mẫu:
+Nội dung mô tả / Video:
 {input_text}
 Chủ đề gợi ý: {niche_hint or 'Tự động'}
 
@@ -204,29 +202,44 @@ Trả về JSON duy nhất với định dạng:
         max_keywords: int
     ) -> Dict[str, Any]:
         text_lower = input_text.lower()
-        matched_key = "drama_funny"
+        matched_key = "dance_hotgirl" # Default modern trend
 
         if niche_hint and niche_hint in DOUYIN_TAXONOMY:
             matched_key = niche_hint
         else:
-            if any(w in text_lower for w in ["ăn", "nấu", "món", "bếp", "bánh", "food", "cook", "quán"]):
+            # 1. Dance / Hotgirl / Nhảy / Vũ đạo
+            if any(w in text_lower for w in ["nhảy", "dance", "múa", "vũ đạo", "gái", "cô gái", "nữ", "xinh", "hot girl", "sexy", "body", "idol", "cover"]):
+                matched_key = "dance_hotgirl"
+            # 2. Military / Máy bay
+            elif any(w in text_lower for w in ["mig", "máy bay", "quân sự", "vũ khí", "chiến đấu", "chiến cơ", "tiêm kích", "plane", "flight", "pilot"]):
+                matched_key = "military_aviation"
+            # 3. Food / Ẩm thực
+            elif any(w in text_lower for w in ["ăn", "nấu", "món", "bếp", "bánh", "food", "cook", "quán", "vị"]):
                 matched_key = "food_cooking"
+            # 4. Drama / Hài kịch
+            elif any(w in text_lower for w in ["hài", "cười", "troll", "tiểu phẩm", "drama", "tấu hài", "bựa"]):
+                matched_key = "drama_funny"
+            # 5. Tâm trạng
             elif any(w in text_lower for w in ["tâm trạng", "buồn", "cảm xúc", "tình yêu", "chữa lành", "triết lý", "sad"]):
                 matched_key = "story_emotion"
+            # 6. Làm đẹp
             elif any(w in text_lower for w in ["makeup", "trang điểm", "đẹp", "son", "quần áo", "outfit", "da", "thời trang"]):
                 matched_key = "beauty_fashion"
+            # 7. Công nghệ
             elif any(w in text_lower for w in ["công nghệ", "máy tính", "tool", "ai", "app", "thủ thuật", "phần mềm"]):
                 matched_key = "tech_tools"
+            # 8. Thú cưng
             elif any(w in text_lower for w in ["chó", "mèo", "pet", "thú cưng", "cute", "cún"]):
                 matched_key = "pets_animals"
+            # 9. Du lịch
             elif any(w in text_lower for w in ["du lịch", "phong cảnh", "núi", "biển", "cảnh đẹp", "travel", "vlog"]):
                 matched_key = "travel_scenery"
+            # 10. Review / Bán hàng
             elif any(w in text_lower for w in ["bán", "mua", "sản phẩm", "review", "đập hộp", "unboxing", "affiliate"]):
                 matched_key = "ecommerce_affiliate"
+            # 11. Gym
             elif any(w in text_lower for w in ["gym", "giảm cân", "tập luyện", "fitness", "workout"]):
                 matched_key = "fitness_workout"
-            elif any(w in text_lower for w in ["mẹo", "tips", "hacks", "tiện ích", "dọn dẹp"]):
-                matched_key = "life_hacks"
 
         niche_info = DOUYIN_TAXONOMY[matched_key]
         main_kw = niche_info["keywords"][0]
