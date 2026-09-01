@@ -21,19 +21,19 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: "8.6"
 
       - name: Build Debug & Release APK
         working-directory: ./android
         run: |
-          chmod +x gradlew || true
-          gradle assembleDebug assembleRelease
+          gradle assembleDebug assembleRelease --stacktrace
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
