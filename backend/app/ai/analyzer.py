@@ -81,34 +81,223 @@ Return ONLY valid JSON matching this schema:
         # Intelligent Fallback Engine
         combined = (transcript + " " + " ".join(ocr_texts) + " " + user_hint).lower()
 
-        if any(w in combined for w in ["món", "ăn", "nấu", "bếp", "ẩm thực", "food"]):
+        if any(w in combined for w in ["pijama", "đồ ngủ", "睡衣", "pajama"]):
             return {
-                "summary": "Video ẩm thực và hướng dẫn nấu món ăn ngon tại nhà.",
-                "subjects": ["food", "chef", "creator"],
-                "appearance": ["trang phục làm bếp", "món ăn bày trí đẹp mắt"],
-                "environment": ["kitchen", "restaurant", "street"],
-                "actions": ["cooking", "frying", "eating", "reviewing"],
-                "camera": ["close-up", "top-down", "tripod"],
-                "categories": ["Food", "Lifestyle", "Cooking"],
-                "emotional_tone": ["healing", "mouth-watering", "relaxing"],
+                "summary": "Video gái xinh mặc đồ ngủ pijama biến hình và sinh hoạt tại nhà.",
+                "subjects": ["female", "creator", "model"],
+                "appearance": ["đồ ngủ pijama lụa", "phong cách ngọt ngào", "mặt mộc xinh xắn"],
+                "environment": ["bedroom", "living room", "home"],
+                "actions": ["changing clothes", "posing", "stretching", "smiling"],
+                "camera": ["close-up", "POV", "mirror selfie"],
+                "categories": ["Fashion", "Beauty", "Lifestyle"],
+                "emotional_tone": ["healing", "sweet", "cozy"],
                 "keywords": {
-                    "primary": ["家常菜做法", "深夜美食", "美食教程"],
-                    "action": ["沉浸式做饭", "大火翻炒", "调料调配"],
-                    "scene": ["厨房", "人间烟火气", "夜市路边摊"],
-                    "style": ["治愈系", "高清慢镜头", "诱人色泽"],
-                    "trend": ["全网爆款美食", "神仙吃法", "懒人快手菜"]
+                    "primary": ["居家睡衣美女", "丝绸睡衣变装", "甜美睡衣日常"],
+                    "action": ["睡衣伸懒腰", "睡衣卡点换装", "慵懒起床日常"],
+                    "scene": ["温暖卧室床头", "晨光洒进房间", "居家温馨客厅"],
+                    "style": ["甜美纯欲", "慵懒氛围感", "自然清新"],
+                    "trend": ["睡衣变装天花板", "居家慵懒写真", "睡衣挑战"]
                 },
                 "queries": {
-                    "exact": ["家常菜美食教程", "深夜食堂治愈做饭"],
-                    "high_similarity": ["懒人快手菜", "爆款下饭菜做法"],
-                    "visual": ["沉浸式厨房做饭", "高清美食诱人特写"],
-                    "action": ["一分钟学会做菜", "经典家常菜翻炒"],
-                    "scene": ["温馨厨房做饭日常", "夜市小吃制作现场"],
-                    "trend": ["全网都在学的爆款菜", "神级下饭菜教程"],
-                    "broad": ["美食", "做饭", "家常菜", "特色小吃"]
+                    "exact": ["居家睡衣美女", "丝绸睡衣变装", "甜美睡衣日常"],
+                    "high_similarity": ["睡衣小姐姐", "居家小甜心", "纯欲睡衣风"],
+                    "visual": ["温暖卧室睡衣写真", "晨光睡衣自拍", "镜子前睡衣变装"],
+                    "action": ["睡衣卡点换装", "睡衣伸懒腰", "抱枕甜美互动"],
+                    "scene": ["卧室温馨日常", "居家生活记录"],
+                    "trend": ["穿睡衣也能这么惊艳", "居家慵懒氛围感天花板"],
+                    "broad": ["睡衣", "居家穿搭", "睡衣美女", "变装"]
                 }
             }
-        elif any(w in combined for w in ["hài", "cười", "drama", "tiểu phẩm"]):
+        elif any(w in combined for w in ["che mặt", "kín mặt", "khẩu trang", "遮脸", "挡脸", "mask", "covering face", "cover face"]):
+            return {
+                "summary": "Video gái xinh che mặt tạo điểm nhấn thần thái và ánh mắt cuốn hút.",
+                "subjects": ["female", "mysterious creator", "model"],
+                "appearance": ["khẩu trang", "tay che mặt", "mắt đẹp", "phong cách bí ẩn"],
+                "environment": ["street", "studio", "neon room", "car"],
+                "actions": ["covering face", "eye contact", "posing", "revealing"],
+                "camera": ["close-up", "eye focus", "slow motion"],
+                "categories": ["Beauty", "Fashion", "Vlog"],
+                "emotional_tone": ["mysterious", "cool", "attractive"],
+                "keywords": {
+                    "primary": ["遮脸神秘氛围感", "半遮面绝美神颜", "手机挡脸拍照"],
+                    "action": ["手机半挡脸", "纤手轻掩面颊", "眼神杀放电"],
+                    "scene": ["昏暗氛围感室内", "逆光街头剪影", "镜子前自拍角"],
+                    "style": ["暗黑氛围感", "高级高级感", "眼神杀"],
+                    "trend": ["遮脸变装", "露眼杀", "神秘感美女"]
+                },
+                "queries": {
+                    "exact": ["遮脸神秘氛围感", "半遮面绝美神颜"],
+                    "high_similarity": ["遮脸气质女神", "露眼杀小姐姐", "神秘感女生"],
+                    "visual": ["昏暗室内眼神特写", "逆光街头遮脸剪影"],
+                    "action": ["手机半挡脸拍照", "眼神杀放电瞬间", "慢镜头遮脸转场"],
+                    "scene": ["镜前遮脸自拍", "街头氛围感抓拍"],
+                    "trend": ["仅凭一双眼睛惊艳全网", "氛围感拉满的遮脸瞬间"],
+                    "broad": ["遮脸", "半遮面", "眼神杀", "氛围感美女"]
+                }
+            }
+        elif any(w in combined for w in ["cô gái nấu ăn", "girl cooking", "cooking girl", "bếp", "nấu ăn", "做饭", "下厨"]):
+            return {
+                "summary": "Video cô gái xinh đẹp nấu ăn và hướng dẫn làm món ngon tại nhà.",
+                "subjects": ["female", "chef", "food creator"],
+                "appearance": ["tạp dề xinh xắn", "trang phục làm bếp gọn gàng"],
+                "environment": ["kitchen", "dining room", "home yard"],
+                "actions": ["cooking", "chopping", "stir-frying", "tasting", "smiling"],
+                "camera": ["close-up", "top-down", "POV", "tripod"],
+                "categories": ["Food", "Cooking", "Lifestyle"],
+                "emotional_tone": ["healing", "mouth-watering", "warm"],
+                "keywords": {
+                    "primary": ["美女下厨做饭", "治愈系沉浸式做饭", "独居女孩一人食"],
+                    "action": ["熟练切菜备料", "大火翻炒颠勺", "秘制酱汁调配"],
+                    "scene": ["暖光温馨厨房", "烟火气小院", "整洁料理台"],
+                    "style": ["治愈系", "高清ASMR", "烟火气"],
+                    "trend": ["仙女的厨房日常", "既有颜值做饭又好吃", "一人食Vlog"]
+                },
+                "queries": {
+                    "exact": ["美女下厨做饭", "治愈系沉浸式做饭", "独居女孩一人食"],
+                    "high_similarity": ["温柔做饭博主", "厨房美厨娘", "精致料理女孩"],
+                    "visual": ["沉浸式厨房做饭", "暖光温馨做饭日常"],
+                    "action": ["熟练切菜备料", "大火翻炒颠勺", "尝一口满足微笑"],
+                    "scene": ["温馨厨房做饭日常", "庭院柴火饭"],
+                    "trend": ["既有颜值做饭又好吃", "下班后的治愈一人食"],
+                    "broad": ["做饭", "美女做饭", "家常菜", "一人食"]
+                }
+            }
+        elif any(w in combined for w in ["mèo", "cat", "kitty", "kitten", "猫", "萌宠"]):
+            return {
+                "summary": "Video những khoảnh khắc đáng yêu, hài hước và ngộ nghĩnh của mèo cưng.",
+                "subjects": ["cat", "kitten", "pet creator"],
+                "appearance": ["lông mềm mượt", "mắt tròn xoe", "tai vểnh đáng yêu"],
+                "environment": ["living room", "cat bed", "window sill"],
+                "actions": ["kneading", "head tilt", "playing", "purring", "sleeping"],
+                "camera": ["macro close-up", "low angle", "POV"],
+                "categories": ["Pets", "Animals", "Lifestyle"],
+                "emotional_tone": ["healing", "cute", "adorable"],
+                "keywords": {
+                    "primary": ["治愈系可爱猫咪", "萌宠猫咪日常", "软萌幼猫撒娇"],
+                    "action": ["踩奶呼噜噜", "歪头杀萌化人心", "翻肚皮求摸摸"],
+                    "scene": ["温暖猫窝", "阳光窗台", "客厅地毯"],
+                    "style": ["治愈系", "超萌慢动作", "温馨日常"],
+                    "trend": ["成精的小猫咪", "猫咪迷惑行为", "云吸猫"]
+                },
+                "queries": {
+                    "exact": ["治愈系可爱猫咪", "萌宠猫咪日常", "软萌幼猫撒娇"],
+                    "high_similarity": ["软萌小奶猫", "胖嘟嘟英短", "粘人小猫咪"],
+                    "visual": ["阳光窗台猫咪特写", "慢动作小猫踩奶"],
+                    "action": ["踩奶呼噜噜", "歪头杀萌化人心", "翻肚皮求摸摸"],
+                    "scene": ["室内猫窝日常", "地毯玩耍瞬间"],
+                    "trend": ["谁能拒绝一只粘人的小猫咪", "看完直接被可爱化了"],
+                    "broad": ["猫咪", "可爱猫咪", "萌宠", "吸猫"]
+                }
+            }
+        elif any(w in combined for w in ["ô tô", "xe hơi", "siêu xe", "car", "supercar", "汽车", "超跑"]):
+            return {
+                "summary": "Video trải nghiệm, đánh giá xe ô tô, siêu xe sang trọng và âm thanh pô.",
+                "subjects": ["car", "supercar", "driver", "reviewer"],
+                "appearance": ["nội thất sang trọng", "nước sơn bóng bẩy", "mâm xe thể thao"],
+                "environment": ["racetrack", "garage", "highway", "mountain road"],
+                "actions": ["accelerating", "drifting", "exhaust revving", "driving"],
+                "camera": ["tracking shot", "drone", "in-car POV", "cinematic"],
+                "categories": ["Automotive", "Supercars", "Technology"],
+                "emotional_tone": ["thrilling", "exciting", "premium"],
+                "keywords": {
+                    "primary": ["豪华超跑声浪", "酷炫汽车大片", "沉浸式新车测评"],
+                    "action": ["轰油门炸街声浪", "弹射起步加速", "丝滑漂移过弯"],
+                    "scene": ["赛道狂飙现场", "深夜地下车库", "沿海公路自驾"],
+                    "style": ["电影质感", "超跑声浪ASMR", "速度与激情"],
+                    "trend": ["男人的终极梦想座驾", "汽车大片", "声浪测评"]
+                },
+                "queries": {
+                    "exact": ["豪华超跑声浪", "酷炫汽车大片", "沉浸式新车测评"],
+                    "high_similarity": ["顶级超跑车主", "资深汽车测评人", "赛道性能车"],
+                    "visual": ["深夜地库汽车大片", "公路飞驰电影运镜"],
+                    "action": ["轰油门炸街声浪", "弹射起步加速", "丝滑漂移过弯"],
+                    "scene": ["专业赛道现场", "深夜地下车库"],
+                    "trend": ["男人的终极梦想座驾", "感受顶级超跑的推背感"],
+                    "broad": ["汽车", "超跑", "赛车", "新车测评"]
+                }
+            }
+        elif any(w in combined for w in ["phong cảnh", "scenery", "landscape", "thiên nhiên", "风景", "自然"]):
+            return {
+                "summary": "Video phong cảnh thiên nhiên tuyệt đẹp với góc quay 4K và flycam.",
+                "subjects": ["landscape", "nature", "mountains", "ocean", "sky"],
+                "appearance": ["màu sắc tự nhiên rực rỡ", "ánh sáng bình minh/hoàng hôn"],
+                "environment": ["mountain", "sea", "forest", "lake", "waterfall"],
+                "actions": ["flowing", "time lapse", "drone flying", "sunset glowing"],
+                "camera": ["drone 4K", "wide landscape", "time-lapse"],
+                "categories": ["Travel", "Nature", "Scenery"],
+                "emotional_tone": ["healing", "peaceful", "magnificent"],
+                "keywords": {
+                    "primary": ["绝美大自然风光", "治愈系唯美风景", "4K超高清自然大片"],
+                    "action": ["日出云海翻涌", "暮色晚霞漫天", "航拍俯瞰大地"],
+                    "scene": ["雪山之巅", "蔚蓝海岸线", "宁静森林湖泊"],
+                    "style": ["4K超高清", "壁纸级风光", "治愈系白噪音"],
+                    "trend": ["走遍中国绝美山河", "治愈大自然", "延时风景"]
+                },
+                "queries": {
+                    "exact": ["绝美大自然风光", "治愈系唯美风景", "4K超高清自然大片"],
+                    "high_similarity": ["航拍风光摄影", "大自然壮丽奇观", "走遍中国绝美山河"],
+                    "visual": ["4K航拍视觉盛宴", "雪山云海日出延时"],
+                    "action": ["日出云海翻涌", "暮色晚霞漫天", "溪流瀑布潺潺"],
+                    "scene": ["雪山之巅风光", "蔚蓝海岸线景观"],
+                    "trend": ["治愈一切不开心的大自然", "随手一截就是壁纸的风光"],
+                    "broad": ["风景", "大自然", "旅行", "航拍大片"]
+                }
+            }
+        elif any(w in combined for w in ["thời trang", "fashion", "ootd", "outfit", "phối đồ", "穿搭", "时尚"]):
+            return {
+                "summary": "Video gợi ý phối đồ thời trang, biến hình trang phục và phong cách sành điệu.",
+                "subjects": ["fashion model", "creator", "female"],
+                "appearance": ["outfit sành điệu", "phụ kiện cao cấp", "tone màu thời thượng"],
+                "environment": ["urban street", "studio", "fashion boutique"],
+                "actions": ["fashion walk", "posing", "outfit transition", "accessories showcase"],
+                "camera": ["full body", "panning", "slow-mo runway"],
+                "categories": ["Fashion", "Beauty", "OOTD"],
+                "emotional_tone": ["confident", "stylish", "chic"],
+                "keywords": {
+                    "primary": ["流行时尚穿搭", "高级感氛围感变装", "每日出街OOTD"],
+                    "action": ["走秀转场变身", "优雅摆pose定格", "快速换装搭配"],
+                    "scene": ["现代都市街头", "极简风摄影棚", "潮流买手店"],
+                    "style": ["高级感", "显瘦搭配", "早秋氛围感"],
+                    "trend": ["一周穿搭不重样", "普通人高级感穿搭", "穿搭天花板"]
+                },
+                "queries": {
+                    "exact": ["流行时尚穿搭", "高级感氛围感变装", "每日出街OOTD"],
+                    "high_similarity": ["时尚穿搭博主", "显高显瘦搭配指南", "潮流模特穿搭"],
+                    "visual": ["都市街拍高级感穿搭", "摄影棚变装秀"],
+                    "action": ["走秀转场变身", "快速换装搭配", "优雅摆pose定格"],
+                    "scene": ["现代都市街头街拍", "潮流买手店试衣"],
+                    "trend": ["普通人也能穿出高级感", "早秋氛围感穿搭天花板"],
+                    "broad": ["穿搭", "时尚", "OOTD", "变装"]
+                }
+            }
+        elif any(w in combined for w in ["review đồ ăn", "food review", "ẩm thực", "quán ăn", "ăn uống", "美食测评", "探店"]):
+            return {
+                "summary": "Video review ẩm thực, trải nghiệm các món ăn đường phố và quán ăn nổi tiếng.",
+                "subjects": ["food reviewer", "mukbang creator", "chef"],
+                "appearance": ["món ăn hấp dẫn", "biểu cảm ăn ngon miệng"],
+                "environment": ["night market", "street stall", "famous restaurant"],
+                "actions": ["eating", "reviewing", "tasting", "ranking", "unboxing"],
+                "camera": ["macro food close-up", "POV tasting", "table view"],
+                "categories": ["Food", "Review", "Mukbang"],
+                "emotional_tone": ["mouth-watering", "fun", "enthusiastic"],
+                "keywords": {
+                    "primary": ["街头美食大探店", "爆款美食真实测评", "深夜路边摊开箱"],
+                    "action": ["咬下一口酥脆爆汁", "大口吃肉满足瞬间", "真实打分点评"],
+                    "scene": ["热闹夜市大排档", "人气爆棚老字号", "街头特色小馆"],
+                    "style": ["真实测评", "第一视角探店", "烟火气"],
+                    "trend": ["必吃神仙小吃", "全网吹爆的网红餐厅", "100元吃遍夜市"]
+                },
+                "queries": {
+                    "exact": ["街头美食大探店", "爆款美食真实测评", "深夜路边摊开箱"],
+                    "high_similarity": ["美食探店博主", "必吃神仙小吃", "大胃王吃播测评"],
+                    "visual": ["夜市大排档探店实录", "高清美食爆汁特写"],
+                    "action": ["咬下一口酥脆爆汁", "大口吃肉满足瞬间", "真实打分点评"],
+                    "scene": ["热闹夜市大排档", "人气爆棚老字号小店"],
+                    "trend": ["这家路边摊千万别错过", "亲测全网吹爆的网红餐厅"],
+                    "broad": ["美食测评", "探店", "路边摊", "吃播"]
+                }
+            }
+        elif any(w in combined for w in ["hài", "cười", "drama", "tiểu phẩm", "funny", "comedy", "搞笑", "沙雕"]):
             return {
                 "summary": "Tiểu phẩm kịch bản hài hước tình huống bất ngờ.",
                 "subjects": ["comedian", "male", "female", "group"],
@@ -136,9 +325,9 @@ Return ONLY valid JSON matching this schema:
                 }
             }
         else:
-            # Default / Dance / Transformation / Hot trend
+            # Default / Dance / Transformation / Hot trend / Beauty Girl
             return {
-                "summary": "Video nhảy hiện đại, biến hình thời trang bắt nhịp âm nhạc Douyin.",
+                "summary": "Video gái xinh, nhảy hiện đại, biến hình thời trang bắt nhịp âm nhạc Douyin.",
                 "subjects": ["female", "young creator", "dancer"],
                 "appearance": ["trang phục thời trang", "makeup cuốn hút", "tóc đẹp"],
                 "environment": ["bedroom", "dance studio", "neon stage", "street"],
@@ -147,19 +336,19 @@ Return ONLY valid JSON matching this schema:
                 "categories": ["Dance", "Fashion", "Beauty", "Transformation"],
                 "emotional_tone": ["energetic", "confident", "attractive"],
                 "keywords": {
-                    "primary": ["抖音热舞", "热门卡点舞", "美女变装"],
+                    "primary": ["抖音高颜值女神", "绝美神仙颜值", "气质纯欲天花板"],
                     "action": ["变装卡点", "慢摇舞", "丝滑转场", "踩点律动"],
                     "scene": ["室内练舞室", "氛围感卧室", "霓虹舞台"],
                     "style": ["氛围感", "高级感", "甜酷风", "时尚"],
                     "trend": ["卡点舞挑战", "爆款翻跳", "心动女嘉宾"]
                 },
                 "queries": {
-                    "exact": ["抖音热门热舞", "热门卡点舞翻跳", "女生变装挑战"],
-                    "high_similarity": ["美女室内变装", "高颜值女团舞翻跳", "全网火爆踩点舞"],
+                    "exact": ["抖音高颜值女神", "绝美神仙颜值", "气质纯欲天花板"],
+                    "high_similarity": ["高颜值小姐姐", "甜美系校花", "氛围感美女"],
                     "visual": ["氛围感练舞室热舞", "镜子前丝滑变装", "霓虹灯光舞台跳舞"],
-                    "action": ["变装卡点惊艳瞬间", "丝滑连贯舞蹈动作", "慢动作踩点律动"],
-                    "scene": ["室内唯美练舞", "户外街头沉浸式跳舞"],
-                    "trend": ["全网都在挑战的爆款舞", "看一遍就上头的神仙跳舞"],
-                    "broad": ["热舞", "卡点舞", "变装", "舞蹈", "美女跳舞"]
+                    "action": ["变装卡点惊艳瞬间", "对镜微笑放电", "唯美回眸一笑"],
+                    "scene": ["阳光微风户外", "室内唯美光影"],
+                    "trend": ["看一眼就沦陷的颜值", "这才是真正的有效颜值"],
+                    "broad": ["美女", "高颜值", "变装", "女神"]
                 }
             }

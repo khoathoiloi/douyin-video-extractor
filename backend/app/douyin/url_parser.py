@@ -33,6 +33,13 @@ class DouyinUrlParser:
             }
 
         target_url = match.group(0).strip()
+        if not cls.is_douyin_or_tiktok_url(target_url):
+            return {
+                "success": False,
+                "error_code": "INVALID_URL",
+                "error": "Đường dẫn không thuộc nền tảng Douyin hoặc TikTok."
+            }
+
         title = ""
         author = "Creator"
         cover_url = ""

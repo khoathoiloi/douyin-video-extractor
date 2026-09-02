@@ -85,21 +85,56 @@ CRITICAL RULES:
         content_format = "dance_cover"
         search_concepts = ["抖音热舞", "美女跳舞", "热门卡点舞", "变装跳舞"]
         
-        if any(w in combined_text for w in ["món", "ăn", "nấu", "bếp", "ẩm thực", "food"]):
-            main_topic = "Ẩm thực / Nấu ăn"
-            actions = ["Nấu nướng", "Thưởng thức món ăn", "Review ẩm thực"]
-            content_format = "cooking_review"
-            search_concepts = ["家常菜做法", "深夜美食", "街头小吃", "美食教程"]
-        elif any(w in combined_text for w in ["hài", "cười", "drama", "tiểu phẩm"]):
+        if any(w in combined_text for w in ["pijama", "đồ ngủ", "睡衣", "pajama"]):
+            main_topic = "Gái xinh mặc pijama / Đồ ngủ dễ thương"
+            actions = ["Mặc đồ ngủ dễ thương", "Biến hình đồ ngủ", "Thư giãn tại nhà"]
+            content_format = "pajama_fashion"
+            search_concepts = ["睡衣美女", "居家睡衣", "甜美睡衣", "睡衣变装"]
+        elif any(w in combined_text for w in ["che mặt", "kín mặt", "khẩu trang", "遮脸", "挡脸", "mask", "covering face", "cover face"]):
+            main_topic = "Gái xinh che mặt / Bí ẩn cuốn hút"
+            actions = ["Che mặt bí ẩn", "Góc nghiêng thần thánh", "Ánh mắt hút hồn"]
+            content_format = "mysterious_beauty"
+            search_concepts = ["遮脸美女", "氛围感遮脸", "半遮面美女", "眼神杀"]
+        elif any(w in combined_text for w in ["nấu ăn", "nấu nướng", "làm bếp", "đầu bếp", "做饭", "下厨", "烹饪", "cooking girl", "girl cooking", "cooking"]):
+            main_topic = "Cô gái nấu ăn / Nấu ăn tại nhà"
+            actions = ["Nấu nướng", "Bày biện món ăn", "Nấu ăn phong cách chữa lành"]
+            content_format = "girl_cooking"
+            search_concepts = ["美女做饭", "沉浸式做饭", "治愈系做饭", "家常菜教程"]
+        elif any(w in combined_text for w in ["review đồ ăn", "ẩm thực", "ăn uống", "đồ ăn", "quán ăn", "món ngon", "美食测评", "探店", "food review", "eating"]):
+            main_topic = "Review đồ ăn / Khám phá ẩm thực"
+            actions = ["Thưởng thức món ăn", "Review đánh giá món ngon", "Khám phá quán ăn"]
+            content_format = "food_review"
+            search_concepts = ["美食测评", "街头美食探店", "路边摊小吃", "吃播探店"]
+        elif any(w in combined_text for w in ["hài", "cười", "drama", "tiểu phẩm", "vui nhộn", "搞笑", "沙雕", "段子", "funny", "comedy", "meme"]):
             main_topic = "Hài hước / Tiểu phẩm ngắn"
-            actions = ["Diễn xuất tình huống bất ngờ", "Tấu hài gây cười"]
+            actions = ["Diễn xuất tình huống bất ngờ", "Tấu hài gây cười", "Phản ứng hài hước"]
             content_format = "short_drama"
             search_concepts = ["搞笑短剧", "沙雕日常", "爆笑反转", "幽默段子"]
-        elif any(w in combined_text for w in ["máy bay", "quân sự", "vũ khí", "mig"]):
-            main_topic = "Quân sự / Máy bay / Vũ khí"
-            actions = ["Cất cánh", "Thao diễn trên không", "Giới thiệu khí tài"]
-            content_format = "documentary_clip"
-            search_concepts = ["战斗机起飞", "军用飞机大片", "米格战机", "军事科普"]
+        elif any(w in combined_text for w in ["mèo", "mèo con", "miu", "cat", "kitten", "kitty", "猫", "可爱猫咪", "喵星人", "萌宠"]):
+            main_topic = "Mèo dễ thương / Thú cưng đáng yêu"
+            actions = ["Mèo con làm nũng", "Chơi đùa với mèo", "Hành động ngộ nghĩnh của mèo"]
+            content_format = "cute_pets"
+            search_concepts = ["可爱猫咪", "萌宠日常", "治愈系猫咪", "小奶猫撒娇"]
+        elif any(w in combined_text for w in ["ô tô", "xe hơi", "siêu xe", "car", "cars", "automobile", "supercar", "汽车", "超跑", "车辆"]):
+            main_topic = "Xe ô tô / Đánh giá xe & Siêu xe"
+            actions = ["Lái thử xe ô tô", "Trải nghiệm tiếng pô siêu xe", "Đánh giá nội thất xe"]
+            content_format = "car_review"
+            search_concepts = ["豪华汽车", "酷炫汽车大片", "超跑声浪", "新车测评"]
+        elif any(w in combined_text for w in ["phong cảnh", "thiên nhiên", "du lịch", "cảnh đẹp", "scenery", "landscape", "nature", "travel", "风景", "自然风光"]):
+            main_topic = "Phong cảnh đẹp / Thiên nhiên hùng vĩ"
+            actions = ["Quay cảnh flycam", "Khám phá phong cảnh thiên nhiên", "Ngắm hoàng hôn"]
+            content_format = "scenery_travel"
+            search_concepts = ["唯美风景", "绝美自然风光", "治愈系风景", "4K航拍大片"]
+        elif any(w in combined_text for w in ["thời trang", "outfit", "ootd", "phối đồ", "quần áo", "fashion", "style", "穿搭", "时尚", "服装"]):
+            main_topic = "Video thời trang / Gợi ý phối đồ"
+            actions = ["Biến hình thời trang", "Thử đồ outfit", "Tạo dáng phong cách thời trang"]
+            content_format = "fashion_outfit"
+            search_concepts = ["时尚穿搭", "每日OOTD", "变装高级感", "显瘦穿搭"]
+        elif any(w in combined_text for w in ["gái xinh", "gái đẹp", "người đẹp", "hotgirl", "beauty", "girl", "beautiful", "美女", "女神", "高颜值"]):
+            main_topic = "Gái xinh / Nhan sắc nổi bật"
+            actions = ["Tạo dáng trước ống kính", "Biến hình nhan sắc", "Thần thái cuốn hút"]
+            content_format = "beauty_girl"
+            search_concepts = ["抖音高颜值女神", "美女变装", "绝美神仙颜值", "氛围感美女"]
 
         return {
             "summary": f"Video ngắn định dạng {content_format} với chủ đề {main_topic}.",
@@ -119,6 +154,6 @@ CRITICAL RULES:
             "content_format": content_format,
             "emotional_tone": ["Hào hứng", "Năng động", "Cuốn hút"],
             "narrative_structure": "Mở đầu nhạc bắt tai -> Động tác cao trào -> Kết thúc tạo dấu ấn",
-            "key_moments": ["0-3s: Bắt đầu điệu nhảy", "Cao trào: Điểm nhấn nhịp điệu"],
+            "key_moments": ["0-3s: Bắt đầu video", "Cao trào: Điểm nhấn nội dung"],
             "search_concepts": search_concepts
         }

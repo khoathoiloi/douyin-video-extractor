@@ -79,12 +79,13 @@ async def api_v1_search_url(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
-    if not DouyinUrlParser.is_valid_url(body.url):
-        raise HTTPException(status_code=400, detail={"error": {"code": "INVALID_URL", "message": "Đường dẫn không hợp lệ."}})
+    if not DouyinUrlParser.is_valid_url(body.url) or not DouyinUrlParser.is_douyin_or_tiktok_url(body.url):
+        raise HTTPException(status_code=400, detail={"error": {"code": "INVALID_URL", "message": "Đường dẫn không hợp lệ hoặc không thuộc nền tảng Douyin/TikTok."}})
 
     meta = DouyinUrlParser.parse_and_fetch_metadata(body.url, settings.UPLOAD_DIR)
     if not meta.get("success", False):
-        raise HTTPException(status_code=400, detail={"error": {"code": "METADATA_FETCH_FAILED", "message": "Không thể lấy thông tin từ link này. Vui lòng thử upload video trực tiếp."}})
+        err_code = meta.get("error_code", "METADATA_FETCH_FAILED")
+        raise HTTPException(status_code=400, detail={"error": {"code": err_code, "message": meta.get("error", "Không thể lấy thông tin từ link này. Vui lòng thử upload video trực tiếp.")}})
 
     video_id = str(uuid.uuid4())
     video_path = meta.get("video_path")
@@ -190,19 +191,23 @@ async def api_v1_search_keyword(
         "video_id": video_id,
         "status": "completed",
         "keyword": kw,
+        "total_results": len(saved),
         "results_count": len(saved),
+        "page": 1,
+        "has_more": False,
         "results": [
             {
                 "rank": idx + 1,
                 "score": MathRound(s.final_score * 100),
                 "match_tier": "Very High Match" if (s.final_score * 100) >= 90 else "High Match",
-                "title": s.title,
-                "url": s.url,
-                "author": s.author,
-                "cover_url": s.cover_url,
-                "like_count": s.like_count,
-                "comment_count": s.comment_count,
-                "search_query": s.search_query
+                "video_id": s.remote_video_id or f"vid_{idx}",
+                "title": s.title or "",
+                "url": s.url or "",
+                "author": s.author or "Douyin Creator",
+                "cover_url": s.cover_url or "",
+                "like_count": s.like_count or 0,
+                "comment_count": s.comment_count or 0,
+                "search_query": s.search_query or kw
             } for idx, s in enumerate(saved)
         ]
     }

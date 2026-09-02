@@ -60,7 +60,7 @@ async def input_upload_video(
     db.add(job)
     db.commit()
 
-    background_tasks.add_task(PipelineJobRunner.run_full_pipeline, video_id, job_id, db, user_hint)
+    background_tasks.add_task(PipelineJobRunner.run_full_pipeline, video_id, job_id, db, user_hint, deep_search)
 
     return {
         "success": True,
@@ -78,8 +78,8 @@ async def input_douyin_url(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
-    if not DouyinUrlParser.is_valid_url(body.url):
-        raise HTTPException(status_code=400, detail="Đường dẫn không hợp lệ. Vui lòng nhập link URL hợp lệ.")
+    if not DouyinUrlParser.is_valid_url(body.url) or not DouyinUrlParser.is_douyin_or_tiktok_url(body.url):
+        raise HTTPException(status_code=400, detail="Đường dẫn không hợp lệ. Vui lòng nhập link URL hợp lệ từ Douyin hoặc TikTok.")
 
     meta = DouyinUrlParser.parse_and_fetch_metadata(body.url, settings.UPLOAD_DIR)
     if not meta.get("success", False):
@@ -109,7 +109,7 @@ async def input_douyin_url(
     db.commit()
 
     combined_hint = f"{meta.get('title', '')} {body.user_hint or ''}".strip()
-    background_tasks.add_task(PipelineJobRunner.run_full_pipeline, video_id, job_id, db, combined_hint)
+    background_tasks.add_task(PipelineJobRunner.run_full_pipeline, video_id, job_id, db, combined_hint, body.deep_search)
 
     return {
         "success": True,

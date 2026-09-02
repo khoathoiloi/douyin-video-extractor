@@ -249,6 +249,7 @@ Trả về JSON duy nhất với định dạng:
         return {
             "success": True,
             "source": "Offline Intelligent Engine",
+            "niche_key": matched_key,
             "main_query": main_kw,
             "keywords": keywords,
             "hashtags": hashtags,
