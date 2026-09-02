@@ -20,6 +20,11 @@ interface ApiService {
         @Part("deep_search") deepSearch: RequestBody
     ): Response<SearchInitResponse>
 
+    @POST("api/v1/search")
+    suspend fun searchUnified(
+        @Body request: UnifiedSearchRequest
+    ): Response<SearchResultsResponse>
+
     @POST("api/v1/search/url")
     suspend fun searchByUrl(
         @Body request: UrlSearchRequest

@@ -2,6 +2,15 @@ package com.douyin.contentfinder.api
 
 import com.google.gson.annotations.SerializedName
 
+data class UnifiedSearchRequest(
+    @SerializedName("input_type") val inputType: String = "text",
+    @SerializedName("query") val query: String,
+    @SerializedName("language") val language: String = "auto",
+    @SerializedName("mode") val mode: String = "deep",
+    @SerializedName("limit") val limit: Int = 20,
+    @SerializedName("min_likes") val minLikes: Int = 0
+)
+
 data class UrlSearchRequest(
     @SerializedName("url") val url: String,
     @SerializedName("user_hint") val userHint: String = "",

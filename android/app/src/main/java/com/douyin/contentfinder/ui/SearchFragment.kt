@@ -209,15 +209,22 @@ class SearchFragment : Fragment() {
     private fun startKeywordSearch() {
         val kw = etManualKeyword.text.toString().trim()
         if (kw.isEmpty()) {
-            Toast.makeText(requireContext(), "Vui lòng nhập từ khóa tiếng Trung", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Vui lòng nhập từ khóa tìm kiếm", Toast.LENGTH_SHORT).show()
             return
         }
-        showProgress("Đang quét Douyin theo từ khóa '$kw'...", 50)
+        val isDeep = switchDeepSearch.isChecked
+        showProgress("Đang phân tích ngữ nghĩa & quét Douyin cho '$kw'...", 50)
 
         lifecycleScope.launch {
             try {
-                val req = KeywordSearchRequest(keyword = kw, deepSearch = switchDeepSearch.isChecked, limit = 30)
-                val resp = apiService.searchByKeyword(req)
+                val req = UnifiedSearchRequest(
+                    inputType = "text",
+                    query = kw,
+                    language = "auto",
+                    mode = if (isDeep) "deep" else "normal",
+                    limit = 30
+                )
+                val resp = apiService.searchUnified(req)
                 hideProgress()
                 if (resp.isSuccessful && resp.body() != null) {
                     val items = resp.body()!!.results
