@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
     <title>Douyin Content Finder & AI Video Search</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -199,12 +200,14 @@
                         <div class="section-header">
                             <div>
                                 <h2 id="resultsCountText">Kết Quả Video Douyin Tương Đồng</h2>
-                                <p class="text-muted">Đã xếp hạng theo công thức 7 chiều & khử trùng lặp.</p>
+                                <p class="text-muted">Đã kiểm tra Video còn sống, tối ưu Thumbnail và khử trùng lặp.</p>
                             </div>
                             <div class="header-btns">
-                                <button class="btn btn-outline" id="btnExportCSV"><i class="fa-solid fa-file-csv"></i> Xuất CSV</button>
-                                <button class="btn btn-outline" id="btnExportJSON"><i class="fa-solid fa-file-code"></i> Xuất JSON</button>
-                                <button class="btn btn-outline" id="btnCopyAll"><i class="fa-solid fa-copy"></i> Copy All Links</button>
+                                <button class="btn btn-outline" id="btnSelectAll"><i class="fa-solid fa-check-double"></i> Chọn Tất Cả</button>
+                                <button class="btn btn-outline" id="btnDeselectAll"><i class="fa-solid fa-xmark"></i> Bỏ Chọn</button>
+                                <button class="btn btn-success" id="btnDownloadSelected"><i class="fa-solid fa-cloud-arrow-down"></i> Tải Video (<span id="selectedCountBadge">0</span>)</button>
+                                <button class="btn btn-outline" id="btnExportCSV"><i class="fa-solid fa-file-csv"></i> CSV</button>
+                                <button class="btn btn-outline" id="btnCopyAll"><i class="fa-solid fa-copy"></i> Copy Links</button>
                             </div>
                         </div>
                         <div class="results-grid" id="resultsGrid"></div>
@@ -212,6 +215,51 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- Download & Google Drive Modal -->
+    <div class="modal" id="downloadModal">
+        <div class="modal-content" style="max-width: 650px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-cloud-arrow-down text-success"></i> Tải Video & Upload Google Drive</h3>
+                <button class="close-modal" id="btnCloseDownloadModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="drive-options-box" style="background:#0f172a; padding:15px; border-radius:8px; margin-bottom:15px;">
+                    <label style="display:flex; align-items:center; gap:8px; font-weight:600; cursor:pointer;">
+                        <input type="checkbox" id="chkUploadDrive" checked> Tự động Upload lên Google Drive sau khi tải
+                    </label>
+                    <div class="form-group" style="margin-top:10px;">
+                        <label style="font-size:13px; color:#94a3b8;">Thư mục lưu trữ Google Drive:</label>
+                        <input type="text" id="txtDriveFolder" class="form-control" value="Douyin Downloader">
+                    </div>
+                    <div style="font-size:12px; color:#64748b; margin-top:6px;">
+                        ⚡ <em>Toàn bộ quá trình tải nguồn HD và upload Drive chạy trực tiếp trên Cloud Server (Render) giúp tiết kiệm pin, RAM và bộ nhớ thiết bị.</em>
+                    </div>
+                </div>
+
+                <div class="download-progress-container" id="downloadProgressContainer" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        <span id="dlJobStatusText" style="font-weight:600; color:#38bdf8;">Đang xử lý...</span>
+                        <span id="dlJobProgressText" style="font-weight:bold;">0%</span>
+                    </div>
+                    <div class="progress-bar-bg" style="height:8px; margin-bottom:15px;">
+                        <div class="progress-bar-fill" id="dlProgressBarFill" style="width:0%;"></div>
+                    </div>
+
+                    <div class="download-items-list" id="downloadItemsList" style="max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">
+                        <!-- Items rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display:flex; justify-content:space-between;">
+                <button class="btn btn-outline" id="btnRetryFailedDownloads" style="display:none;"><i class="fa-solid fa-rotate-right"></i> Thử Lại Video Lỗi</button>
+                <div style="display:flex; gap:10px; margin-left:auto;">
+                    <button class="btn btn-outline" id="btnCancelDownload">Đóng</button>
+                    <button class="btn btn-success" id="btnStartBatchDownloadAction"><i class="fa-solid fa-play"></i> Bắt Đầu Tải</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- History Drawer -->
@@ -242,10 +290,11 @@
                     <input type="text" id="cfgDouyinCookie" class="form-control" placeholder="Dán cookie Douyin để quét không giới hạn...">
                 </div>
                 <div class="form-group">
-                    <label>Search Provider:</label>
+                    <label>Download Provider:</label>
                     <select id="cfgSearchProvider" class="form-control">
-                        <option value="live">Live Douyin Search Provider</option>
-                        <option value="mock">Mock Provider (Offline Test)</option>
+                        <option value="composite">Tự động chọn nguồn tốt nhất (Douyin HD + SnapTikTok)</option>
+                        <option value="direct">Douyin Direct HD 1080p</option>
+                        <option value="snaptiktok">SnapTikTok Provider</option>
                     </select>
                 </div>
             </div>

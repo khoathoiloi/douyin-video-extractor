@@ -69,3 +69,45 @@ data class SearchResultsResponse(
     @SerializedName("has_more") val hasMore: Boolean,
     @SerializedName("results") val results: List<SearchResultItem>
 )
+
+data class DownloadVideoItem(
+    @SerializedName("video_id") val videoId: String = "",
+    @SerializedName("url") val url: String = "",
+    @SerializedName("title") val title: String = "",
+    @SerializedName("author") val author: String = "",
+    @SerializedName("cover_url") val coverUrl: String = "",
+    @SerializedName("availability_status") val availabilityStatus: String = "ACTIVE"
+)
+
+data class BatchDownloadRequest(
+    @SerializedName("videos") val videos: List<DownloadVideoItem>,
+    @SerializedName("upload_to_drive") val uploadToDrive: Boolean = true,
+    @SerializedName("drive_folder") val driveFolder: String = "Douyin Downloader"
+)
+
+data class BatchDownloadInitResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("job_id") val jobId: String,
+    @SerializedName("status") val status: String,
+    @SerializedName("total_queued") val totalQueued: Int,
+    @SerializedName("message") val message: String? = null
+)
+
+data class DownloadItemDetail(
+    @SerializedName("video_id") val videoId: String,
+    @SerializedName("title") val title: String,
+    @SerializedName("status") val status: String,
+    @SerializedName("progress") val progress: Int,
+    @SerializedName("drive_link") val driveLink: String? = null,
+    @SerializedName("error_message") val errorMessage: String? = null
+)
+
+data class DownloadJobResponse(
+    @SerializedName("job_id") val jobId: String,
+    @SerializedName("status") val status: String,
+    @SerializedName("progress_percent") val progressPercent: Int,
+    @SerializedName("total_items") val totalItems: Int,
+    @SerializedName("completed_items") val completedItems: Int,
+    @SerializedName("failed_items") val failedItems: Int,
+    @SerializedName("items") val items: List<DownloadItemDetail>? = null
+)

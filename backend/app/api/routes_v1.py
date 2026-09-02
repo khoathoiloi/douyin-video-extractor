@@ -164,7 +164,16 @@ async def api_v1_search_keyword(
         })
 
     unique_cands = Deduplicator.deduplicate(candidates)
-    for c in unique_cands:
+
+    # Availability filter: Filter out DELETED, PRIVATE, UNAVAILABLE videos
+    from ..douyin.availability import DouyinAvailabilityChecker
+    active_cands, _ = await DouyinAvailabilityChecker.filter_candidates(
+        unique_cands,
+        max_concurrency=10,
+        cookie=settings.DOUYIN_COOKIE
+    )
+
+    for c in active_cands:
         if body.min_likes and c.get("like_count", 0) < body.min_likes:
             continue
         sr = SearchResult(

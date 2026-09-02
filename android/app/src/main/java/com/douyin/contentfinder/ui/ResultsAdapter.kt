@@ -65,9 +65,11 @@ class ResultsAdapter(
             }
             tvScore.setTextColor(ContextCompat.getColor(itemView.context, colorRes))
 
-            // Efficient image loading via Coil (low memory for Galaxy S9)
+            // Efficient image loading via Coil with Douyin Referer header (low memory for Galaxy S9)
             ivCover.load(item.coverUrl) {
                 crossfade(true)
+                addHeader("Referer", "https://www.douyin.com/")
+                addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 10; SM-G960F) AppleWebKit/537.36")
                 transformations(RoundedCornersTransformation(16f))
                 placeholder(android.R.drawable.ic_menu_gallery)
                 error(android.R.drawable.ic_menu_report_image)

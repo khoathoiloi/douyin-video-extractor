@@ -77,6 +77,15 @@ class WaterfallSearchStrategy:
 
         unique_cands = Deduplicator.deduplicate(cand_dicts)
 
+        # Availability Check: Filter out DELETED, PRIVATE, UNAVAILABLE videos
+        # ACTIVE and UNKNOWN are preserved (timeouts/network errors remain UNKNOWN and not deleted)
+        from .availability import DouyinAvailabilityChecker
+        active_cands, removed_cands = await DouyinAvailabilityChecker.filter_candidates(
+            unique_cands,
+            max_concurrency=10,
+            cookie=getattr(provider, "cookie", "")
+        )
+
         return [
             NormalizedSearchResult(
                 platform=u["platform"],
@@ -92,5 +101,5 @@ class WaterfallSearchStrategy:
                 comment_count=u["comment_count"],
                 share_count=u["share_count"],
                 search_query=u["search_query"]
-            ) for u in unique_cands
+            ) for u in active_cands
         ]

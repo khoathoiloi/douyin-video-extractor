@@ -48,6 +48,21 @@ interface ApiService {
         @Query("min_score") minScore: Float = 70.0f
     ): Response<SearchResultsResponse>
 
+    @POST("api/v1/download")
+    suspend fun startBatchDownload(
+        @Body request: BatchDownloadRequest
+    ): Response<BatchDownloadInitResponse>
+
+    @GET("api/v1/download/jobs/{job_id}")
+    suspend fun getDownloadJobStatus(
+        @Path("job_id") jobId: String
+    ): Response<DownloadJobResponse>
+
+    @POST("api/v1/download/jobs/{job_id}/retry")
+    suspend fun retryDownloadJob(
+        @Path("job_id") jobId: String
+    ): Response<Map<String, Any>>
+
     companion object {
         private var defaultBaseUrl = "http://10.0.2.2:8000/" // Android Emulator fallback
 

@@ -649,18 +649,28 @@ class DouyinExtractorApp(ctk.CTk):
         right_box = ctk.CTkFrame(btn_box)
         right_box.grid(row=0, column=1, padx=15, pady=15, sticky="nsew")
 
-        ctk.CTkLabel(right_box, text="⬇️ Tải Video Trực Tiếp Về Máy", font=ctk.CTkFont(size=14, weight="bold")).pack(padx=15, pady=(15, 10), anchor="w")
+        ctk.CTkLabel(right_box, text="⬇️ Tải Video & Upload Google Drive", font=ctk.CTkFont(size=14, weight="bold")).pack(padx=15, pady=(15, 10), anchor="w")
+
+        self.btn_download_cloud_drive = ctk.CTkButton(
+            right_box,
+            text="☁️ Tải Trên Cloud & Upload Google Drive",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#0284C7",
+            hover_color="#0369A1",
+            height=40,
+            command=self._on_start_cloud_drive_download
+        )
+        self.btn_download_cloud_drive.pack(padx=15, pady=6, fill="x")
 
         self.btn_download_batch = ctk.CTkButton(
             right_box,
-            text="⬇️ Bắt Đầu Tải Hàng Loạt Video (HD No-WM)",
-            font=ctk.CTkFont(size=13, weight="bold"),
-            fg_color="#E53E3E",
-            hover_color="#C53030",
-            height=45,
+            text="⬇️ Tải Trực Tiếp Về Máy (HD No-WM)",
+            font=ctk.CTkFont(size=13),
+            fg_color="#4A5568",
+            height=35,
             command=self._on_start_batch_download
         )
-        self.btn_download_batch.pack(padx=15, pady=(15, 10), fill="x")
+        self.btn_download_batch.pack(padx=15, pady=6, fill="x")
 
         self.download_progress = ctk.CTkProgressBar(right_box)
         self.download_progress.pack(padx=15, pady=10, fill="x")
@@ -706,6 +716,79 @@ class DouyinExtractorApp(ctk.CTk):
         self.clipboard_clear()
         self.clipboard_append("\n".join(links))
         messagebox.showinfo("Thành công", f"Đã sao chép {len(links)} link xem video Douyin (mở được ngay trên trình duyệt) vào Clipboard!")
+
+    def _on_start_cloud_drive_download(self):
+        if not self.filtered_videos:
+            messagebox.showwarning("Thông báo", "Chưa có danh sách video để tải.")
+            return
+
+        videos_to_send = []
+        for v in self.filtered_videos:
+            vid = v.get("aweme_id") or v.get("video_id") or ""
+            url = v.get("web_url") or f"https://www.douyin.com/video/{vid}"
+            videos_to_send.append({
+                "video_id": vid,
+                "url": url,
+                "title": v.get("title", ""),
+                "author": v.get("author_name", ""),
+                "cover_url": v.get("cover_url", ""),
+                "availability_status": "ACTIVE"
+            })
+
+        self.btn_download_cloud_drive.configure(state="disabled", text="⏳ Đang gửi yêu cầu...")
+        self.download_progress.set(0.05)
+        self.lbl_download_status.configure(text="Đang tạo hàng đợi tải trên Cloud Server...")
+
+        def _worker():
+            res = self.cloud_client.start_batch_download(videos_to_send, upload_to_drive=True, drive_folder="Douyin Downloader")
+            if not res.get("success"):
+                err = res.get("error", "Không thể tạo tác vụ trên Cloud.")
+                self.after(0, lambda: self._on_cloud_download_failed(err))
+                return
+
+            job_id = res.get("job_id")
+            # Poll download job
+            self._poll_cloud_download_job(job_id)
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _poll_cloud_download_job(self, job_id: str):
+        def _poll():
+            for _ in range(120):
+                res = self.cloud_client.get_download_job_status(job_id)
+                if res.get("success"):
+                    d = res["data"]
+                    pct = d.get("progress_percent", 0) / 100.0
+                    completed = d.get("completed_items", 0)
+                    total = d.get("total_items", 1)
+                    status = d.get("status")
+
+                    self.after(0, lambda p=pct, c=completed, t=total, s=status: self._update_cloud_download_ui(p, c, t, s))
+
+                    if status in ("completed", "completed_with_errors", "failed"):
+                        self.after(0, lambda s=status, c=completed, t=total: self._on_cloud_download_finished(s, c, t))
+                        return
+                time.sleep(1.5)
+
+        threading.Thread(target=_poll, daemon=True).start()
+
+    def _update_cloud_download_ui(self, pct, completed, total, status):
+        self.download_progress.set(pct)
+        self.lbl_download_status.configure(text=f"Tiến độ Cloud: {int(pct*100)}% ({completed}/{total} video)")
+
+    def _on_cloud_download_finished(self, status, completed, total):
+        self.btn_download_cloud_drive.configure(state="normal", text="☁️ Tải Trên Cloud & Upload Google Drive")
+        self.download_progress.set(1.0)
+        if status in ("completed", "completed_with_errors"):
+            self.lbl_download_status.configure(text=f"✅ Hoàn tất tải {completed}/{total} video lên Google Drive!")
+            messagebox.showinfo("Thành công", f"Đã hoàn tất xử lý {completed}/{total} video trên Cloud & Google Drive!")
+        else:
+            self.lbl_download_status.configure(text="❌ Quá trình tải trên Cloud thất bại")
+
+    def _on_cloud_download_failed(self, err):
+        self.btn_download_cloud_drive.configure(state="normal", text="☁️ Tải Trên Cloud & Upload Google Drive")
+        self.lbl_download_status.configure(text=f"Lỗi: {err}")
+        messagebox.showerror("Lỗi Tải Cloud", err)
 
     def _on_start_batch_download(self):
         if not self.filtered_videos:

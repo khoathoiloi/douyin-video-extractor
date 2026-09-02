@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .core.database import engine, Base
 from .core.config import settings
-from .api import routes_v1, routes_input, routes_videos, routes_analysis, routes_queries, routes_search, routes_jobs, routes_process
+from .api import routes_v1, routes_input, routes_videos, routes_analysis, routes_queries, routes_search, routes_jobs, routes_process, routes_download, routes_proxy
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -30,6 +30,8 @@ app.add_middleware(
 
 # Include Routers
 app.include_router(routes_v1.router, prefix="/api", tags=["Android Mobile API v1"])
+app.include_router(routes_download.router, prefix="/api", tags=["Download & Google Drive"])
+app.include_router(routes_proxy.router, prefix="/api", tags=["Thumbnail Proxy & Assets"])
 app.include_router(routes_input.router, prefix="/api", tags=["Inputs"])
 app.include_router(routes_videos.router, prefix="/api", tags=["Videos"])
 app.include_router(routes_analysis.router, prefix="/api", tags=["Analysis"])

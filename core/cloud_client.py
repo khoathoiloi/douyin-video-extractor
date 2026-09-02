@@ -1,4 +1,4 @@
-﻿"""
+"""
 Core Module: Douyin Cloud API Client
 Connects Desktop PC GUI to Cloud Backend API (FastAPI) via HTTPS / REST.
 """
@@ -236,3 +236,45 @@ class DouyinCloudClient:
             return resp.status_code == 200
         except Exception:
             return False
+
+    def start_batch_download(
+        self,
+        videos: List[Dict[str, Any]],
+        upload_to_drive: bool = True,
+        drive_folder: str = "Douyin Downloader"
+    ) -> Dict[str, Any]:
+        """Triggers batch download & optional Google Drive upload on Cloud Backend."""
+        endpoint = f"{self.server_url}/api/v1/download"
+        payload = {
+            "videos": videos,
+            "upload_to_drive": upload_to_drive,
+            "drive_folder": drive_folder
+        }
+        try:
+            resp = self.session.post(endpoint, json=payload, timeout=self.timeout)
+            if resp.status_code == 200:
+                return resp.json()
+            err_data = resp.json().get("detail", {})
+            msg = err_data.get("error", {}).get("message") if isinstance(err_data, dict) else str(err_data)
+            return {"success": False, "error": msg or f"HTTP {resp.status_code}"}
+        except Exception as e:
+            return {"success": False, "error": f"Lỗi tạo tác vụ tải: {str(e)}"}
+
+    def get_download_job_status(self, job_id: str) -> Dict[str, Any]:
+        """Polls download job status."""
+        try:
+            resp = self.session.get(f"{self.server_url}/api/v1/download/jobs/{job_id}", timeout=10)
+            if resp.status_code == 200:
+                return {"success": True, "data": resp.json()}
+            return {"success": False, "error": f"HTTP {resp.status_code}"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def retry_download_job(self, job_id: str) -> bool:
+        """Retries failed items in a download job."""
+        try:
+            resp = self.session.post(f"{self.server_url}/api/v1/download/jobs/{job_id}/retry", timeout=10)
+            return resp.status_code == 200
+        except Exception:
+            return False
+
