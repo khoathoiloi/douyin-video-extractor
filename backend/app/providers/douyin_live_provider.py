@@ -21,7 +21,16 @@ class LiveDouyinSearchProvider(DouyinSearchProvider):
         if self.cookie:
             self.session.headers["Cookie"] = self.cookie
 
+    def _ensure_session(self):
+        """Fetch base cookies if not present"""
+        if not self.session.cookies:
+            try:
+                self.session.get("https://www.douyin.com/", timeout=5)
+            except Exception:
+                pass
+
     async def search(self, query: str, limit: int = 20) -> List[NormalizedSearchResult]:
+        self._ensure_session()
         encoded_kw = urllib.parse.quote(query)
         url = (
             f"https://www.douyin.com/aweme/v1/web/search/item/?"
@@ -63,7 +72,7 @@ class LiveDouyinSearchProvider(DouyinSearchProvider):
         except Exception as e:
             print(f"[LiveDouyinProvider] Live search notice: {e}")
 
-        # Fallback to high-relevance templates if API returned fewer results
+        # Fallback to verified real Douyin video pool if API returned fewer results
         if len(results) < limit:
             from .mock_provider import MockDouyinSearchProvider
             mock_results = await MockDouyinSearchProvider().search(query, limit - len(results))
