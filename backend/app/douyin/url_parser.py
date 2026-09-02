@@ -85,10 +85,33 @@ class DouyinUrlParser:
                     if t_match:
                         title = t_match.group(1).replace(" - 抖音", "").replace(" - TikTok", "").strip()
 
+            # If Douyin returned anti-bot title '服务器出现问题 / 请稍后重试'
+            if "服务器出现问题" in title or "请稍后重试" in title:
+                title = ""
+
             if not cover_url:
                 og_img = re.search(r'<meta\s+property="og:image"\s+content="([^"]*)"', html)
                 if og_img:
                     cover_url = og_img.group(1)
+
+            # Fallback to iesdouyin iteminfo API if title/cover missing
+            if remote_id and (not title or not cover_url):
+                try:
+                    item_api = f"https://www.iesdouyin.com/web/api/v2/aweme/iteminfo/?item_ids={remote_id}"
+                    item_resp = session.get(item_api, timeout=6)
+                    if item_resp.status_code == 200:
+                        item_data = item_resp.json()
+                        item_list = item_data.get("item_list", [])
+                        if item_list:
+                            it = item_list[0]
+                            if not title:
+                                title = it.get("desc", "")
+                            if author == "Creator":
+                                author = it.get("author", {}).get("nickname", author)
+                            if not cover_url:
+                                cover_url = it.get("video", {}).get("cover", {}).get("url_list", [""])[0]
+                except Exception as e:
+                    print(f"[UrlParser] iesdouyin fallback notice: {e}")
         except Exception as e:
             print(f"[UrlParser] Douyin HTML fetch notice: {e}")
 

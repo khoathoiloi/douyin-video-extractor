@@ -73,6 +73,18 @@ class DouyinAvailabilityChecker:
         "违规下架",
     ]
 
+    # Temporary rate-limit / server error / anti-bot signals (Must remain UNKNOWN, NEVER DELETED)
+    TEMPORARY_PATTERNS = [
+        "服务器出现问题",
+        "请稍后重试",
+        "系统繁忙",
+        "访问过于频繁",
+        "网络开小差",
+        "环境异常",
+        "verify",
+        "captcha"
+    ]
+
     # In-memory TTL cache: {video_id: (AvailabilityResult, expire_timestamp)}
     _cache: Dict[str, Tuple[AvailabilityResult, float]] = {}
     _cache_ttl_seconds: int = 3600  # 1 hour
@@ -171,6 +183,13 @@ class DouyinAvailabilityChecker:
                     result.status = VideoAvailabilityStatus.UNKNOWN
                     result.reason = f"Temporary status {resp.status} / Verification page"
                     return result
+
+                # Check for temporary server anti-bot text ('服务器出现问题', '请稍后重试', etc.)
+                for p in cls.TEMPORARY_PATTERNS:
+                    if p in text:
+                        result.status = VideoAvailabilityStatus.UNKNOWN
+                        result.reason = f"Temporary Douyin server message: {p}"
+                        return result
 
                 # Check Deleted Patterns
                 for p in cls.DELETED_PATTERNS:
