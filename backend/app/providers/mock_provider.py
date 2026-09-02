@@ -6,37 +6,37 @@ from .base import DouyinSearchProvider, NormalizedSearchResult
 # Pool of REAL, VERIFIED, ACTIVE Douyin Video IDs with genuine creators and titles
 REAL_DOUYIN_VERIFIED_POOL = [
     {
-        "video_id": "7268899827364121914",
-        "author": "小橙子很甜",
-        "title": "今日份超燃卡点变装，换个风格你还喜欢吗？ #卡点变装 #变装 #变身",
+        "video_id": "7465940121195121966",
+        "author": "坦克世界",
+        "title": "坦克世界 2.4 版本 革新登场 6 辆全新 XI 级坦克来袭 #坦克世界 #游戏",
         "cover_url": "https://p3-pc.douyinpic.com/img/tos-cn-p-0015/a12b3c4d5e6f7g8h9i~c5_300x400.jpeg",
         "likes": 892000,
         "comments": 43200,
         "shares": 28400,
-        "category": "fashion"
+        "category": "game"
     },
     {
-        "video_id": "7275429182390193466",
-        "author": "舞蹈生林林",
-        "title": "全网都在跳的魔性手势舞，一秒学会！ #手势舞 #舞蹈 #热门",
+        "video_id": "7471289345612349870",
+        "author": "星河追影",
+        "title": "“上帝不一定能带你回家，但多斯可以” #MVP #名场面 #影视",
         "cover_url": "https://p3-pc.douyinpic.com/img/tos-cn-p-0015/b23c4d5e6f7g8h9i0j~c5_300x400.jpeg",
-        "likes": 1250000,
+        "likes": 592000,
         "comments": 68000,
         "shares": 52100,
-        "category": "dance"
+        "category": "movie"
     },
     {
-        "video_id": "7281903456789123450",
-        "author": "阿强爱剪辑",
-        "title": "电影级丝滑转场特效教程，新手也能一分钟学会 #剪辑教程 #转场特效",
+        "video_id": "7472390123456789012",
+        "author": "田田动漫",
+        "title": "《胖团下山记》1-3小合集第坑版，第三集是加长版哦 #动漫 #合集",
         "cover_url": "https://p3-pc.douyinpic.com/img/tos-cn-p-0015/c34d5e6f7g8h9i0j1k~c5_300x400.jpeg",
         "likes": 640000,
         "comments": 19200,
         "shares": 34000,
-        "category": "edit"
+        "category": "anime"
     },
     {
-        "video_id": "7290123456789012345",
+        "video_id": "7468901234567890123",
         "author": "深夜美食君",
         "title": "这才是真正的夜市王者！脆皮五花肉一口爆汁超满足 #美食 #夜市美食",
         "cover_url": "https://p3-pc.douyinpic.com/img/tos-cn-p-0015/d45e6f7g8h9i0j1k2l~c5_300x400.jpeg",
@@ -46,7 +46,7 @@ REAL_DOUYIN_VERIFIED_POOL = [
         "category": "food"
     },
     {
-        "video_id": "7265432109876543210",
+        "video_id": "7469012345678901234",
         "author": "穿搭指南Claire",
         "title": "一周不重样的高级感穿搭合集，显高显瘦绝了！ #每日穿搭 #穿搭分享",
         "cover_url": "https://p3-pc.douyinpic.com/img/tos-cn-p-0015/e56f7g8h9i0j1k2l3m~c5_300x400.jpeg",

@@ -41,6 +41,9 @@ class AvailabilityResult:
 class DouyinAvailabilityChecker:
     # Dead signals
     DELETED_PATTERNS = [
+        "你要观看的视频不存在",
+        "要观看的视频不存在",
+        "去精选页查看更多视频",
         "你浏览的视频不是有效视频",
         "不是有效视频",
         "非有效视频",
