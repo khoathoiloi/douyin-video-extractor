@@ -12,8 +12,8 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import customtkinter as ctk
 
+from core.cloud_client import DouyinCloudClient, DEFAULT_SERVER_URL
 from core.analyzer import DouyinAIAnalyzer, DOUYIN_TAXONOMY
-from core.douyin_scanner import DouyinScanner
 from core.filters import DouyinFilter
 from core.exporter import DouyinExporter
 
@@ -27,7 +27,7 @@ class DouyinExtractorApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Douyin Video Extractor & AI Filter - by khoathoiloi")
+        self.title("Douyin Video Extractor & AI Cloud Client - by khoathoiloi")
         self.geometry("1100x750")
         self.minsize(950, 650)
 
@@ -40,18 +40,24 @@ class DouyinExtractorApp(ctk.CTk):
         # Load configuration
         self.config = self._load_config()
 
-        # Initialize engines
+        # Initialize Cloud Client (Default: http://127.0.0.1:8000 or custom Cloud URL)
+        self.cloud_client = DouyinCloudClient(server_url=self.config.get("server_url", DEFAULT_SERVER_URL))
+
+        # Local fallback analyzer
         self.analyzer = DouyinAIAnalyzer(
             api_key=self.config.get("ai_api_key", ""),
             provider=self.config.get("ai_provider", "gemini")
         )
-        self.scanner = DouyinScanner(cookie=self.config.get("douyin_cookie", ""))
 
         # Build UI layout
         self._build_ui()
 
+        # Ping server on startup
+        self.after(500, self._check_server_health)
+
     def _load_config(self) -> dict:
         default_config = {
+            "server_url": DEFAULT_SERVER_URL,
             "ai_provider": "gemini",
             "ai_api_key": "",
             "douyin_cookie": "",
@@ -81,47 +87,79 @@ class DouyinExtractorApp(ctk.CTk):
         # Left Navigation Sidebar
         self.sidebar_frame = ctk.CTkFrame(self, width=220, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
-        self.sidebar_frame.grid_rowconfigure(6, weight=1)
+        self.sidebar_frame.grid_rowconfigure(7, weight=1)
 
         self.logo_label = ctk.CTkLabel(
             self.sidebar_frame,
-            text="🎵 Douyin Extractor",
+            text="🎵 Douyin Client",
             font=ctk.CTkFont(size=20, weight="bold")
         )
-        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
+        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 5))
 
         self.version_label = ctk.CTkLabel(
             self.sidebar_frame,
-            text="AI Link & Discovery Filter v1.2",
+            text="Cloud API Edition v2.0",
             font=ctk.CTkFont(size=12),
             text_color="gray"
         )
-        self.version_label.grid(row=1, column=0, padx=20, pady=(0, 20))
+        self.version_label.grid(row=1, column=0, padx=20, pady=(0, 15))
+
+        # Cloud Status badge
+        self.status_badge = ctk.CTkLabel(
+            self.sidebar_frame,
+            text="☁️ Đang kết nối Cloud...",
+            font=ctk.CTkFont(size=11),
+            text_color="#CBD5E0",
+            fg_color="#2D3748",
+            corner_radius=6,
+            height=25
+        )
+        self.status_badge.grid(row=2, column=0, padx=15, pady=(0, 15), sticky="ew")
 
         # Navigation buttons
         self.nav_btn_ai = ctk.CTkButton(
-            self.sidebar_frame, text="🧠 AI Link & Từ Khóa", command=lambda: self._select_tab("ai"),
-            height=40, font=ctk.CTkFont(size=14)
+            self.sidebar_frame, text="🧠 AI Studio & Video", command=lambda: self._select_tab("ai"),
+            height=40, font=ctk.CTkFont(size=13, weight="bold")
         )
-        self.nav_btn_ai.grid(row=2, column=0, padx=15, pady=8, sticky="ew")
+        self.nav_btn_ai.grid(row=3, column=0, padx=15, pady=6, sticky="ew")
 
         self.nav_btn_search = ctk.CTkButton(
             self.sidebar_frame, text="🔍 Tìm Kiếm & Lọc", command=lambda: self._select_tab("search"),
-            height=40, font=ctk.CTkFont(size=14)
+            height=40, font=ctk.CTkFont(size=13, weight="bold")
         )
-        self.nav_btn_search.grid(row=3, column=0, padx=15, pady=8, sticky="ew")
+        self.nav_btn_search.grid(row=4, column=0, padx=15, pady=6, sticky="ew")
 
         self.nav_btn_export = ctk.CTkButton(
-            self.sidebar_frame, text="📥 Xuất & Tải Về", command=lambda: self._select_tab("export"),
-            height=40, font=ctk.CTkFont(size=14)
+            self.sidebar_frame, text="📊 Xuất & Tải Video", command=lambda: self._select_tab("export"),
+            height=40, font=ctk.CTkFont(size=13, weight="bold")
         )
-        self.nav_btn_export.grid(row=4, column=0, padx=15, pady=8, sticky="ew")
+        self.nav_btn_export.grid(row=5, column=0, padx=15, pady=6, sticky="ew")
 
         self.nav_btn_settings = ctk.CTkButton(
-            self.sidebar_frame, text="⚙️ Cài Đặt", command=lambda: self._select_tab("settings"),
-            height=40, font=ctk.CTkFont(size=14)
+            self.sidebar_frame, text="⚙️ Cài Đặt Cloud", command=lambda: self._select_tab("settings"),
+            height=40, font=ctk.CTkFont(size=13, weight="bold")
         )
-        self.nav_btn_settings.grid(row=5, column=0, padx=15, pady=8, sticky="ew")
+        self.nav_btn_settings.grid(row=6, column=0, padx=15, pady=6, sticky="ew")
+
+    def _check_server_health(self):
+        def _worker():
+            res = self.cloud_client.ping()
+            self.after(0, lambda: self._update_server_badge(res))
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _update_server_badge(self, res: dict):
+        if res.get("connected"):
+            self.status_badge.configure(
+                text=f"🟢 Cloud Online ({res.get('latency_ms')}ms)",
+                fg_color="#1C4532",
+                text_color="#9AE6B4"
+            )
+        else:
+            self.status_badge.configure(
+                text="🔴 Cloud Mất Kết Nối",
+                fg_color="#742A2A",
+                text_color="#FEB2B2"
+            )
 
         # Bottom stats
         self.status_box = ctk.CTkFrame(self.sidebar_frame, fg_color="transparent")
@@ -169,22 +207,22 @@ class DouyinExtractorApp(ctk.CTk):
             else:
                 btn.configure(fg_color="transparent")
 
-    # ================= TAB 1: AI STUDIO =================
+    # ================= TAB 1: AI STUDIO & VIDEO =================
     def _create_ai_tab(self) -> ctk.CTkFrame:
         frame = ctk.CTkFrame(self.main_container, corner_radius=10)
-        frame.grid_rowconfigure(3, weight=1)
+        frame.grid_rowconfigure(4, weight=1)
         frame.grid_columnconfigure(0, weight=1)
 
         lbl = ctk.CTkLabel(
             frame,
-            text="🧠 Phân Tích Ý Tưởng & Sinh Từ Khóa Douyin (AI Studio)",
+            text="🧠 Phân Tích Ý Tưởng, Link & Video Đa Phương Thức (Cloud AI)",
             font=ctk.CTkFont(size=18, weight="bold")
         )
         lbl.grid(row=0, column=0, padx=20, pady=(20, 5), sticky="w")
 
         sub_lbl = ctk.CTkLabel(
             frame,
-            text="Nhập mô tả ý tưởng, tóm tắt video mẫu hoặc chủ đề. AI sẽ tự động phân tích và sinh từ khóa tiếng Trung chuẩn SEO Douyin.",
+            text="Dán Link Douyin/TikTok, Chọn Video từ máy tính hoặc nhập ý tưởng. Toàn bộ xử lý AI (ASR, OCR, Keyframes, 20 Queries) chạy trên Cloud Server.",
             font=ctk.CTkFont(size=12),
             text_color="gray70",
             wraplength=800,
@@ -197,41 +235,66 @@ class DouyinExtractorApp(ctk.CTk):
         input_box.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
         input_box.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(input_box, text="Dán Link Video / Mô tả:", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, padx=10, pady=8, sticky="w")
-        self.ai_input_text = ctk.CTkTextbox(input_box, height=75)
-        self.ai_input_text.grid(row=0, column=1, columnspan=3, padx=10, pady=8, sticky="ew")
-        self.ai_input_text.insert("0.0", "https://v.douyin.com/iR3qXYZ/ 7.89 复制打开抖音，看看【搞笑短剧】 (hoặc dán link video bất kỳ)")
+        ctk.CTkLabel(input_box, text="Link / Ý Tưởng / File:", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, padx=10, pady=8, sticky="w")
+        self.ai_input_text = ctk.CTkTextbox(input_box, height=65)
+        self.ai_input_text.grid(row=0, column=1, columnspan=2, padx=10, pady=8, sticky="ew")
+        self.ai_input_text.insert("0.0", "https://www.douyin.com/video/7268899827364121914")
 
+        btn_select_file = ctk.CTkButton(
+            input_box,
+            text="📁 Chọn Video...",
+            width=110,
+            fg_color="#4A5568",
+            command=self._on_select_local_video
+        )
+        btn_select_file.grid(row=0, column=3, padx=10, pady=8)
+
+        # Row 2
         ctk.CTkLabel(input_box, text="Chủ đề gợi ý:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
         niche_names = ["Tự động phát hiện"] + [v["name"] for v in DOUYIN_TAXONOMY.values()]
-        self.niche_combo = ctk.CTkComboBox(input_box, values=niche_names, width=320)
+        self.niche_combo = ctk.CTkComboBox(input_box, values=niche_names, width=280)
         self.niche_combo.set("Tự động phát hiện")
         self.niche_combo.grid(row=1, column=1, padx=10, pady=10, sticky="w")
 
+        self.deep_search_check = ctk.CTkCheckBox(input_box, text="Deep Search (Quét sâu 50-300 video)")
+        self.deep_search_check.grid(row=1, column=2, padx=10, pady=10, sticky="w")
+
         self.btn_run_ai = ctk.CTkButton(
             input_box,
-            text="🚀 Bắt Đầu Phân Tích & Sinh Từ Khóa",
+            text="🚀 Gửi Lên Cloud Phân Tích",
             font=ctk.CTkFont(weight="bold"),
             command=self._on_run_ai_analysis,
             height=35
         )
-        self.btn_run_ai.grid(row=1, column=2, padx=10, pady=10, sticky="e")
+        self.btn_run_ai.grid(row=1, column=3, padx=10, pady=10)
+
+        # Progress bar
+        self.ai_progress_frame = ctk.CTkFrame(frame, fg_color="transparent")
+        self.ai_progress_frame.grid(row=3, column=0, padx=20, pady=5, sticky="ew")
+        self.ai_progress_frame.grid_columnconfigure(0, weight=1)
+
+        self.ai_progress_bar = ctk.CTkProgressBar(self.ai_progress_frame)
+        self.ai_progress_bar.grid(row=0, column=0, sticky="ew", pady=(0, 4))
+        self.ai_progress_bar.set(0)
+
+        self.lbl_ai_stage = ctk.CTkLabel(self.ai_progress_frame, text="Trạng thái: Sẵn sàng gửi tác vụ lên Cloud", text_color="gray70", font=ctk.CTkFont(size=12))
+        self.lbl_ai_stage.grid(row=1, column=0, sticky="w")
 
         # Result display
         result_box = ctk.CTkFrame(frame)
-        result_box.grid(row=3, column=0, padx=20, pady=(10, 20), sticky="nsew")
+        result_box.grid(row=4, column=0, padx=20, pady=(5, 15), sticky="nsew")
         result_box.grid_rowconfigure(1, weight=1)
         result_box.grid_columnconfigure(0, weight=1)
 
         result_header = ctk.CTkFrame(result_box, fg_color="transparent")
-        result_header.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+        result_header.grid(row=0, column=0, padx=10, pady=8, sticky="ew")
         result_header.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(result_header, text="📋 Kết quả Từ Khóa Douyin:", font=ctk.CTkFont(size=14, weight="bold")).grid(row=0, column=0, sticky="w")
+        ctk.CTkLabel(result_header, text="📋 Kết quả Từ Khóa & Phân Tích:", font=ctk.CTkFont(size=14, weight="bold")).grid(row=0, column=0, sticky="w")
         
         self.btn_use_keyword = ctk.CTkButton(
             result_header,
-            text="➡️ Đưa Từ Khóa Sang Tìm Kiếm",
+            text="➡️ Đưa Kết Quả Sang Bảng Tìm Kiếm",
             command=self._on_transfer_keyword_to_search,
             fg_color="#2FA572",
             hover_color="#1E7A52",
@@ -244,76 +307,105 @@ class DouyinExtractorApp(ctk.CTk):
 
         return frame
 
+    def _on_select_local_video(self):
+        f = filedialog.askopenfilename(filetypes=[("Video Files", "*.mp4 *.mov *.avi *.mkv *.webm")])
+        if f:
+            self.ai_input_text.delete("0.0", "end")
+            self.ai_input_text.insert("0.0", f)
+
     def _on_run_ai_analysis(self):
-        user_text = self.ai_input_text.get("0.0", "end").strip()
-        if not user_text:
-            messagebox.showwarning("Thông báo", "Vui lòng nhập nội dung hoặc ý tưởng video.")
+        user_input = self.ai_input_text.get("0.0", "end").strip()
+        if not user_input:
+            messagebox.showwarning("Thông báo", "Vui lòng dán Link Douyin, chọn Video hoặc nhập ý tưởng.")
             return
 
-        self.btn_run_ai.configure(state="disabled", text="⏳ Đang phân tích...")
+        self.btn_run_ai.configure(state="disabled", text="⏳ Đang xử lý trên Cloud...")
+        self.ai_progress_bar.set(0.05)
+        self.lbl_ai_stage.configure(text="Đang gửi dữ liệu lên Cloud Server...")
+        self.ai_output_text.delete("0.0", "end")
+        deep_search = bool(self.deep_search_check.get())
+
+        def _progress_cb(pct, stage_name, job_data):
+            self.after(0, lambda: self._update_ai_progress(pct, stage_name))
 
         def _worker():
-            selected_niche = self.niche_combo.get()
-            niche_key = None
-            for k, v in DOUYIN_TAXONOMY.items():
-                if v["name"] == selected_niche:
-                    niche_key = k
-                    break
+            if user_input.startswith("http://") or user_input.startswith("https://"):
+                res = self.cloud_client.analyze_url(user_input, deep_search=deep_search, progress_callback=_progress_cb)
+            elif os.path.exists(user_input) and os.path.isfile(user_input):
+                res = self.cloud_client.analyze_video_file(user_input, deep_search=deep_search, progress_callback=_progress_cb)
+            else:
+                search_res = self.cloud_client.search_keyword(user_input, limit=50 if deep_search else 20, deep_search=deep_search)
+                if search_res.get("success"):
+                    d = search_res["data"]
+                    res = {
+                        "success": True,
+                        "job_id": d.get("job_id"),
+                        "queries": [user_input],
+                        "results": d.get("results", []),
+                        "analysis": {"summary": f"Tìm kiếm từ khóa '{user_input}'", "main_topic": user_input}
+                    }
+                else:
+                    res = search_res
 
-            res = self.analyzer.analyze_video_url(user_text, scanner_instance=self.scanner, niche_hint=niche_key)
-            self.after(0, lambda: self._display_ai_result(res))
+            self.after(0, lambda: self._display_cloud_ai_result(res))
 
         threading.Thread(target=_worker, daemon=True).start()
 
-    def _display_ai_result(self, res: dict):
-        self.btn_run_ai.configure(state="normal", text="🚀 Bắt Đầu Phân Tích & Sinh Từ Khóa")
-        self.ai_output_text.delete("0.0", "end")
+    def _update_ai_progress(self, pct: int, stage_name: str):
+        self.ai_progress_bar.set(pct / 100.0)
+        self.lbl_ai_stage.configure(text=f"Tiến độ Cloud: {pct}% — {stage_name}")
+
+    def _display_cloud_ai_result(self, res: dict):
+        self.btn_run_ai.configure(state="normal", text="🚀 Gửi Lên Cloud Phân Tích")
+        self.ai_progress_bar.set(1.0)
+        self.lbl_ai_stage.configure(text="Trạng thái: Hoàn tất!")
 
         if not res.get("success", False):
-            self.ai_output_text.insert("0.0", f"❌ Lỗi: {res.get('error', 'Không xác định')}")
+            err = res.get("error", "Không xác định")
+            self.ai_output_text.insert("0.0", f"❌ Lỗi từ Cloud Server:\n{err}")
+            messagebox.showerror("Lỗi Cloud", err)
             return
 
-        source = res.get("source", "Offline Engine")
-        main_kw = res.get("main_query", "")
-        keywords = res.get("keywords", [])
-        hashtags = res.get("hashtags", [])
-        meaning = res.get("vietnamese_meaning", {})
+        analysis = res.get("analysis") or {}
+        queries = res.get("queries") or []
+        results = res.get("results") or []
 
-        parsed_vid = res.get("parsed_video", {})
-        output_str = f"=== KẾT QUẢ PHÂN TÍCH TỪ KHÓA DOUYIN (Nguồn: {source}) ===\n\n"
-        if parsed_vid and parsed_vid.get("success"):
-            output_str += "🎬 THÔNG TIN VIDEO MẪU TỪ LINK:\n"
-            output_str += f"   • Tiêu đề: {parsed_vid.get('title')}\n"
-            output_str += f"   • Tác giả: {parsed_vid.get('author')}\n"
-            output_str += f"   • Link gốc: {parsed_vid.get('original_link')}\n"
-            if parsed_vid.get('video_url'):
-                output_str += f"   • Link Video HD No-WM: {parsed_vid.get('video_url')}\n"
-            output_str += "\n" 
-        output_str += f"🔥 TỪ KHÓA CHÍNH (Main Query): {main_kw}\n"
-        if meaning.get("main_query_vi"):
-            output_str += f"   ➤ Ý nghĩa: {meaning.get('main_query_vi')}\n\n"
+        output_str = "=== ☁️ KẾT QUẢ PHÂN TÍCH TỪ CLOUD SERVER ===\n\n"
+        if analysis:
+            output_str += f"📌 Chủ Đề Chính: {analysis.get('main_topic', 'N/A')}\n"
+            output_str += f"📝 Tóm Tắt Nội Dung: {analysis.get('summary', 'N/A')}\n"
+            if analysis.get('transcript'):
+                output_str += f"🎙️ Giọng Nói (ASR): {analysis.get('transcript')}\n"
+            output_str += "\n"
 
-        output_str += f"📌 TỪ KHÓA PHỤ LIÊN QUAN:\n"
-        for kw in keywords:
-            output_str += f"   • {kw}\n"
+        if queries:
+            output_str += f"🔥 20 TỪ KHÓA TÌM KIẾM TIẾNG TRUNG TỐI ƯU (SEO DOUYIN):\n"
+            for i, q in enumerate(queries, 1):
+                output_str += f"   {i:2d}. {q}\n"
+            output_str += "\n"
 
-        output_str += f"\n🏷️ HASHTAG XU HƯỚNG (#话题):\n"
-        output_str += f"   {' '.join(hashtags)}\n\n"
-
-        if meaning.get("strategy_vi"):
-            output_str += f"💡 CHIẾN LƯỢC TÌM KIẾM:\n   {meaning.get('strategy_vi')}\n"
+        if results:
+            output_str += f"🎬 ĐÃ TÌM THẤY & XẾP HẠNG {len(results)} VIDEO LIÊN QUAN TRÊN DOUYIN:\n"
+            for i, r in enumerate(results[:5], 1):
+                output_str += f"   [{i}] Điểm: {r.get('score')}% ({r.get('match_tier')}) — {r.get('title')}\n"
+                output_str += f"       Tác giả: {r.get('author')} | Likes: {r.get('like_count'):,} | Link: {r.get('url')}\n"
+            if len(results) > 5:
+                output_str += f"   ... và {len(results) - 5} video khác. Bấm 'Đưa Kết Quả Sang Bảng Tìm Kiếm' để xem đầy đủ!\n"
 
         self.ai_output_text.insert("0.0", output_str)
-        self.last_generated_keyword = main_kw
+        self.last_cloud_results = results
+        self.last_generated_keyword = queries[0] if queries else ""
 
     def _on_transfer_keyword_to_search(self):
-        kw = getattr(self, "last_generated_keyword", "")
-        if kw:
+        if hasattr(self, "last_cloud_results") and self.last_cloud_results:
+            self._display_results_in_table(self.last_cloud_results)
+            self._select_tab("search")
+        elif getattr(self, "last_generated_keyword", ""):
             self.search_entry.delete(0, "end")
-            self.search_entry.insert(0, kw)
+            self.search_entry.insert(0, self.last_generated_keyword)
             self._select_tab("search")
         else:
-            messagebox.showinfo("Thông báo", "Vui lòng phân tích từ khóa trước.")
+            messagebox.showinfo("Thông báo", "Vui lòng phân tích từ khóa hoặc video trước.")
 
     # ================= TAB 2: SEARCH & FILTER =================
     def _create_search_tab(self) -> ctk.CTkFrame:
@@ -327,16 +419,16 @@ class DouyinExtractorApp(ctk.CTk):
         ctrl_frame.grid_columnconfigure(1, weight=1)
 
         ctk.CTkLabel(ctrl_frame, text="Từ khóa Douyin:", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, padx=10, pady=10, sticky="w")
-        self.search_entry = ctk.CTkEntry(ctrl_frame, placeholder_text="Nhập từ khóa tiếng Trung (ví dụ: 搞笑短剧, 治愈系, 美食教程)...", height=35)
+        self.search_entry = ctk.CTkEntry(ctrl_frame, placeholder_text="Nhập từ khóa tiếng Trung / Việt (ví dụ: 搞笑短剧, gái xinh, 美食教程)...", height=35)
         self.search_entry.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
         self.search_entry.insert(0, "搞笑短剧")
 
         self.btn_search = ctk.CTkButton(
             ctrl_frame,
-            text="🔍 Bắt Đầu Quét",
+            text="🔍 Tìm Kiếm Cloud",
             font=ctk.CTkFont(weight="bold"),
             command=self._on_start_search,
-            width=130,
+            width=140,
             height=35
         )
         self.btn_search.grid(row=0, column=2, padx=10, pady=10)
@@ -346,40 +438,27 @@ class DouyinExtractorApp(ctk.CTk):
         filter_frame.grid(row=1, column=0, padx=15, pady=5, sticky="ew")
 
         # Row 1 of filters
-        ctk.CTkLabel(filter_frame, text="Số lượng quét:").grid(row=0, column=0, padx=10, pady=8, sticky="w")
+        ctk.CTkLabel(filter_frame, text="Số lượng:").grid(row=0, column=0, padx=10, pady=8, sticky="w")
         self.count_combo = ctk.CTkComboBox(filter_frame, values=["10", "20", "50", "100"], width=80)
         self.count_combo.set("20")
         self.count_combo.grid(row=0, column=1, padx=5, pady=8, sticky="w")
 
-        ctk.CTkLabel(filter_frame, text="Lượt Thích (Likes) tối thiểu:").grid(row=0, column=2, padx=(15, 5), pady=8, sticky="w")
+        ctk.CTkLabel(filter_frame, text="Likes tối thiểu:").grid(row=0, column=2, padx=(15, 5), pady=8, sticky="w")
         self.min_likes_combo = ctk.CTkComboBox(filter_frame, values=["0", "5,000", "10,000", "50,000", "100,000", "500,000"], width=110)
         self.min_likes_combo.set("10,000")
         self.min_likes_combo.grid(row=0, column=3, padx=5, pady=8, sticky="w")
 
-        ctk.CTkLabel(filter_frame, text="Thời gian đăng:").grid(row=0, column=4, padx=(15, 5), pady=8, sticky="w")
-        self.date_range_combo = ctk.CTkComboBox(filter_frame, values=["Tất cả thời gian", "24 giờ qua", "7 ngày qua", "30 ngày qua"], width=140)
-        self.date_range_combo.set("Tất cả thời gian")
-        self.date_range_combo.grid(row=0, column=5, padx=5, pady=8, sticky="w")
-
-        # Row 2 of filters
-        ctk.CTkLabel(filter_frame, text="Thời lượng:").grid(row=1, column=0, padx=10, pady=8, sticky="w")
-        self.duration_combo = ctk.CTkComboBox(filter_frame, values=["Tất cả", "Ngắn (< 1 phút)", "Vừa (1-3 phút)", "Dài (> 3 phút)"], width=130)
-        self.duration_combo.set("Tất cả")
-        self.duration_combo.grid(row=1, column=1, columnspan=2, padx=5, pady=8, sticky="w")
-
-        ctk.CTkLabel(filter_frame, text="Sắp xếp:").grid(row=1, column=3, padx=(15, 5), pady=8, sticky="w")
-        self.sort_combo = ctk.CTkComboBox(filter_frame, values=["Nhiều Likes nhất", "Nhiều Bình luận nhất", "Mới nhất"], width=150)
-        self.sort_combo.set("Nhiều Likes nhất")
-        self.sort_combo.grid(row=1, column=4, padx=5, pady=8, sticky="w")
+        self.search_deep_check = ctk.CTkCheckBox(filter_frame, text="Deep Search")
+        self.search_deep_check.grid(row=0, column=4, padx=15, pady=8, sticky="w")
 
         self.btn_apply_filter = ctk.CTkButton(
             filter_frame,
-            text="⚡ Lọc Lại Kết Quả",
+            text="⚡ Lọc Lại",
             command=self._apply_current_filters,
-            width=130,
+            width=100,
             fg_color="#4A5568"
         )
-        self.btn_apply_filter.grid(row=1, column=5, padx=10, pady=8)
+        self.btn_apply_filter.grid(row=0, column=5, padx=10, pady=8)
 
         # Table Results Area
         table_frame = ctk.CTkFrame(frame)
@@ -387,26 +466,26 @@ class DouyinExtractorApp(ctk.CTk):
         table_frame.grid_rowconfigure(0, weight=1)
         table_frame.grid_columnconfigure(0, weight=1)
 
-        columns = ("stt", "id", "title", "author", "likes", "comments", "duration", "create_time")
+        columns = ("stt", "score", "id", "title", "author", "likes", "comments", "query")
         self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", selectmode="extended")
         
         self.tree.heading("stt", text="#")
+        self.tree.heading("score", text="Điểm AI")
         self.tree.heading("id", text="ID Video")
         self.tree.heading("title", text="Tiêu đề Video")
         self.tree.heading("author", text="Tác giả")
         self.tree.heading("likes", text="Lượt Thích")
         self.tree.heading("comments", text="Bình Luận")
-        self.tree.heading("duration", text="Thời Lượng")
-        self.tree.heading("create_time", text="Ngày Đăng")
+        self.tree.heading("query", text="Từ Khóa")
 
         self.tree.column("stt", width=40, anchor="center")
-        self.tree.column("id", width=140, anchor="center")
-        self.tree.column("title", width=380, anchor="w")
+        self.tree.column("score", width=70, anchor="center")
+        self.tree.column("id", width=130, anchor="center")
+        self.tree.column("title", width=360, anchor="w")
         self.tree.column("author", width=120, anchor="w")
         self.tree.column("likes", width=100, anchor="e")
-        self.tree.column("comments", width=90, anchor="e")
-        self.tree.column("duration", width=80, anchor="center")
-        self.tree.column("create_time", width=120, anchor="center")
+        self.tree.column("comments", width=80, anchor="e")
+        self.tree.column("query", width=120, anchor="w")
 
         v_scroll = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=v_scroll.set)
@@ -425,69 +504,66 @@ class DouyinExtractorApp(ctk.CTk):
             return
 
         count = int(self.count_combo.get())
-        self.btn_search.configure(state="disabled", text="⏳ Đang quét...")
+        deep_search = bool(self.search_deep_check.get())
+        self.btn_search.configure(state="disabled", text="⏳ Đang quét Cloud...")
 
         def _worker():
-            results = self.scanner.search_videos(keyword=kw, count=count)
-            self.raw_videos = results
-            self.after(0, self._apply_current_filters)
+            res = self.cloud_client.search_keyword(kw, limit=count, deep_search=deep_search)
+            self.after(0, lambda: self._on_search_completed(res))
 
         threading.Thread(target=_worker, daemon=True).start()
 
+    def _on_search_completed(self, res: dict):
+        self.btn_search.configure(state="normal", text="🔍 Tìm Kiếm Cloud")
+        if not res.get("success"):
+            err = res.get("error", "Không thể tìm kiếm trên Cloud.")
+            messagebox.showerror("Lỗi Tìm Kiếm", err)
+            return
+
+        items = res.get("data", {}).get("results", [])
+        self._display_results_in_table(items)
+
+    def _display_results_in_table(self, items: list):
+        self.raw_videos = []
+        for it in items:
+            self.raw_videos.append({
+                "aweme_id": it.get("video_id", ""),
+                "title": it.get("title", ""),
+                "author_name": it.get("author", ""),
+                "digg_count": it.get("like_count", 0),
+                "comment_count": it.get("comment_count", 0),
+                "share_count": it.get("share_count", 0),
+                "duration": it.get("duration", 30),
+                "web_url": it.get("url", ""),
+                "video_no_watermark_url": it.get("url", ""),
+                "score": it.get("score", 90),
+                "search_query": it.get("search_query", "")
+            })
+
+        self._apply_current_filters()
+
     def _apply_current_filters(self):
-        self.btn_search.configure(state="normal", text="🔍 Bắt Đầu Quét")
-        
         likes_str = self.min_likes_combo.get().replace(",", "").replace(".", "").strip()
         min_likes = int(likes_str) if likes_str.isdigit() else 0
 
-        date_map = {
-            "Tất cả thời gian": "all",
-            "24 giờ qua": "24h",
-            "7 ngày qua": "7d",
-            "30 ngày qua": "30d"
-        }
-        date_range = date_map.get(self.date_range_combo.get(), "all")
-
-        dur_map = {
-            "Tất cả": "all",
-            "Ngắn (< 1 phút)": "short",
-            "Vừa (1-3 phút)": "medium",
-            "Dài (> 3 phút)": "long"
-        }
-        dur_type = dur_map.get(self.duration_combo.get(), "all")
-
-        sort_map = {
-            "Nhiều Likes nhất": "likes_desc",
-            "Nhiều Bình luận nhất": "comments_desc",
-            "Mới nhất": "newest"
-        }
-        sort_by = sort_map.get(self.sort_combo.get(), "likes_desc")
-
-        self.filtered_videos = DouyinFilter.apply_filters(
-            videos=self.raw_videos,
-            min_likes=min_likes,
-            date_range=date_range,
-            duration_type=dur_type,
-            sort_by=sort_by
-        )
+        self.filtered_videos = [v for v in self.raw_videos if v.get("digg_count", 0) >= min_likes]
 
         for item in self.tree.get_children():
             self.tree.delete(item)
 
         for i, v in enumerate(self.filtered_videos, 1):
-            dur_formatted = f"{v.get('duration', 0)}s"
+            score_text = f"{v.get('score', 90)}%"
             self.tree.insert("", "end", values=(
                 i,
+                score_text,
                 v.get("aweme_id", ""),
                 v.get("title", ""),
                 v.get("author_name", ""),
                 f"{v.get('digg_count', 0):,}",
                 f"{v.get('comment_count', 0):,}",
-                dur_formatted,
-                v.get("create_time", "")
+                v.get("search_query", "")
             ))
 
-        self.lbl_stats.configure(text=f"Video đã quét: {len(self.raw_videos)} | Thỏa bộ lọc: {len(self.filtered_videos)}")
         if hasattr(self, "lbl_export_count"):
             self.lbl_export_count.configure(text=f"Số lượng video sẵn sàng xuất: {len(self.filtered_videos)}")
 
@@ -497,8 +573,9 @@ class DouyinExtractorApp(ctk.CTk):
             return
         vals = self.tree.item(selected_item, "values")
         if vals:
-            video_id = vals[1]
-            webbrowser.open(f"https://www.douyin.com/video/{video_id}")
+            video_id = vals[2]
+            url = f"https://www.douyin.com/video/{video_id}"
+            webbrowser.open(url)
 
     # ================= TAB 3: EXPORT & DOWNLOAD =================
     def _create_export_tab(self) -> ctk.CTkFrame:
@@ -676,30 +753,28 @@ class DouyinExtractorApp(ctk.CTk):
         frame = ctk.CTkFrame(self.main_container, corner_radius=10)
         frame.grid_columnconfigure(0, weight=1)
 
-        ctk.CTkLabel(frame, text="⚙️ Cài Đặt Hệ Thống & Cấu Hình API", font=ctk.CTkFont(size=18, weight="bold")).grid(row=0, column=0, padx=20, pady=(20, 15), sticky="w")
+        ctk.CTkLabel(frame, text="⚙️ Cài Đặt Kết Nối Cloud Server & Client", font=ctk.CTkFont(size=18, weight="bold")).grid(row=0, column=0, padx=20, pady=(20, 15), sticky="w")
 
         box = ctk.CTkFrame(frame)
         box.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
         box.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(box, text="Dịch vụ AI:").grid(row=0, column=0, padx=15, pady=12, sticky="w")
-        self.set_ai_provider = ctk.CTkComboBox(box, values=["gemini", "openai"])
-        self.set_ai_provider.set(self.config.get("ai_provider", "gemini"))
-        self.set_ai_provider.grid(row=0, column=1, padx=15, pady=12, sticky="w")
+        # Cloud Server URL
+        ctk.CTkLabel(box, text="Cloud Server URL:", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, padx=15, pady=12, sticky="w")
+        url_frame = ctk.CTkFrame(box, fg_color="transparent")
+        url_frame.grid(row=0, column=1, padx=15, pady=12, sticky="ew")
+        url_frame.grid_columnconfigure(0, weight=1)
 
-        ctk.CTkLabel(box, text="AI API Key:").grid(row=1, column=0, padx=15, pady=12, sticky="w")
-        self.set_api_key = ctk.CTkEntry(box, placeholder_text="Nhập Google Gemini API Key hoặc OpenAI Key...")
-        self.set_api_key.insert(0, self.config.get("ai_api_key", ""))
-        self.set_api_key.grid(row=1, column=1, padx=15, pady=12, sticky="ew")
+        self.set_server_url = ctk.CTkEntry(url_frame, placeholder_text="http://127.0.0.1:8000 hoặc https://api.yourdomain.com")
+        self.set_server_url.insert(0, self.config.get("server_url", DEFAULT_SERVER_URL))
+        self.set_server_url.grid(row=0, column=0, sticky="ew", padx=(0, 10))
 
-        ctk.CTkLabel(box, text="Douyin Cookie:").grid(row=2, column=0, padx=15, pady=12, sticky="w")
-        self.set_cookie = ctk.CTkEntry(box, placeholder_text="Dán Cookie từ Douyin.com để tăng tốc và mở khóa 100% video...")
-        self.set_cookie.insert(0, self.config.get("douyin_cookie", ""))
-        self.set_cookie.grid(row=2, column=1, padx=15, pady=12, sticky="ew")
+        btn_ping = ctk.CTkButton(url_frame, text="⚡ Ping Server", width=100, command=self._on_test_server_connection)
+        btn_ping.grid(row=0, column=1)
 
-        ctk.CTkLabel(box, text="Thư mục lưu video:").grid(row=3, column=0, padx=15, pady=12, sticky="w")
+        ctk.CTkLabel(box, text="Thư mục lưu video:").grid(row=1, column=0, padx=15, pady=12, sticky="w")
         dir_frame = ctk.CTkFrame(box, fg_color="transparent")
-        dir_frame.grid(row=3, column=1, padx=15, pady=12, sticky="ew")
+        dir_frame.grid(row=1, column=1, padx=15, pady=12, sticky="ew")
         dir_frame.grid_columnconfigure(0, weight=1)
 
         self.set_download_dir = ctk.CTkEntry(dir_frame)
@@ -709,9 +784,14 @@ class DouyinExtractorApp(ctk.CTk):
         btn_browse = ctk.CTkButton(dir_frame, text="📁 Chọn...", width=80, command=self._on_browse_folder)
         btn_browse.grid(row=0, column=1)
 
+        ctk.CTkLabel(box, text="Douyin Cookie (tùy chọn):").grid(row=2, column=0, padx=15, pady=12, sticky="w")
+        self.set_cookie = ctk.CTkEntry(box, placeholder_text="Dán Cookie Douyin nếu muốn đồng bộ lên Cloud...")
+        self.set_cookie.insert(0, self.config.get("douyin_cookie", ""))
+        self.set_cookie.grid(row=2, column=1, padx=15, pady=12, sticky="ew")
+
         btn_save = ctk.CTkButton(
             frame,
-            text="💾 Lưu Cấu Hình",
+            text="💾 Lưu Cấu Hình & Đồng Bộ Cloud",
             font=ctk.CTkFont(size=14, weight="bold"),
             height=40,
             command=self._on_save_settings
@@ -720,6 +800,16 @@ class DouyinExtractorApp(ctk.CTk):
 
         return frame
 
+    def _on_test_server_connection(self):
+        new_url = self.set_server_url.get().strip()
+        self.cloud_client.set_server_url(new_url)
+        res = self.cloud_client.ping()
+        self._update_server_badge(res)
+        if res.get("connected"):
+            messagebox.showinfo("Kết nối thành công", f"Đã kết nối tới Cloud Server!\nĐộ trễ: {res.get('latency_ms')} ms\nPhiên bản API: {res.get('version')}")
+        else:
+            messagebox.showerror("Kết nối thất bại", f"Không thể kết nối:\n{res.get('error')}")
+
     def _on_browse_folder(self):
         f = filedialog.askdirectory(initialdir=self.config.get("download_folder"))
         if f:
@@ -727,16 +817,18 @@ class DouyinExtractorApp(ctk.CTk):
             self.set_download_dir.insert(0, f)
 
     def _on_save_settings(self):
-        self.config["ai_provider"] = self.set_ai_provider.get()
-        self.config["ai_api_key"] = self.set_api_key.get().strip()
+        self.config["server_url"] = self.set_server_url.get().strip()
         self.config["douyin_cookie"] = self.set_cookie.get().strip()
         self.config["download_folder"] = self.set_download_dir.get().strip()
         self._save_config()
 
-        self.analyzer.set_api_key(self.config["ai_api_key"], self.config["ai_provider"])
-        self.scanner.update_cookie(self.config["douyin_cookie"])
+        self.cloud_client.set_server_url(self.config["server_url"])
+        
+        if self.config["douyin_cookie"]:
+            self.cloud_client.update_cloud_settings({"douyin_cookie": self.config["douyin_cookie"]})
 
-        messagebox.showinfo("Thành công", "Đã lưu cấu hình thành công!")
+        self._check_server_health()
+        messagebox.showinfo("Thành công", "Đã lưu cấu hình và đồng bộ Cloud Server thành công!")
 
 
 def main():
