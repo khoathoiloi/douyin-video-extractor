@@ -41,6 +41,9 @@ class AvailabilityResult:
 class DouyinAvailabilityChecker:
     # Dead signals
     DELETED_PATTERNS = [
+        "你浏览的视频不是有效视频",
+        "不是有效视频",
+        "非有效视频",
         "抱歉，作品不见了",
         "作品不存在",
         "作品已删除",
@@ -49,6 +52,10 @@ class DouyinAvailabilityChecker:
         "该作品已被删除",
         "视频不存在",
         "内容不存在",
+        "暂无此视频",
+        "该视频暂不可用",
+        "视频不可用",
+        "作品不可用",
         "aweme_not_exists",
         "aweme not found",
     ]

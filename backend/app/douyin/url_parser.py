@@ -76,6 +76,15 @@ class DouyinUrlParser:
                 video_download_url = f"https://aweme.snssdk.com/aweme/v1/play/?video_id={remote_id}&ratio=1080p&line=0"
 
             html = r.text
+
+            # Check if video is deleted or invalid
+            if any(p in html for p in ["你浏览的视频不是有效视频", "不是有效视频", "抱歉，作品不见了", "作品不存在", "作品已删除", "该作品已被删除"]):
+                return {
+                    "success": False,
+                    "error_code": "VIDEO_DELETED",
+                    "error": "Video Douyin này không tồn tại hoặc đã bị xóa/riêng tư (你浏览的视频不是有效视频)."
+                }
+
             if not title:
                 og_title = re.search(r'<meta\s+property="og:title"\s+content="([^"]*)"', html)
                 if og_title:
