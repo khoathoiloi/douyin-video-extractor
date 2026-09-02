@@ -85,9 +85,29 @@ class DouyinUrlParser:
                     if t_match:
                         title = t_match.group(1).replace(" - 抖音", "").replace(" - TikTok", "").strip()
 
-            # If Douyin returned anti-bot title '服务器出现问题 / 请稍后重试'
-            if "服务器出现问题" in title or "请稍后重试" in title:
+            # If Douyin returned anti-bot title or loading placeholder
+            if any(err_kw in title for err_kw in ["服务器出现问题", "请稍后重试", "视频数据加载中", "数据加载中", "加载中"]):
                 title = ""
+
+            # Try parsing RENDER_DATA or _ROUTER_DATA from HTML
+            if not title or not cover_url:
+                try:
+                    render_match = re.search(r'id="RENDER_DATA"[^>]*>([^<]+)<', html)
+                    if render_match:
+                        raw_data = urllib.parse.unquote(render_match.group(1))
+                        json_data = json.loads(raw_data)
+                        for k, v in json_data.items():
+                            if isinstance(v, dict):
+                                aweme_info = v.get("aweme", {}) or v.get("aweme_info", {})
+                                if aweme_info:
+                                    if not title:
+                                        title = aweme_info.get("desc", "")
+                                    if author == "Creator":
+                                        author = aweme_info.get("author", {}).get("nickname", author)
+                                    if not cover_url:
+                                        cover_url = aweme_info.get("video", {}).get("cover", {}).get("url_list", [""])[0]
+                except Exception as e:
+                    print(f"[UrlParser] RENDER_DATA parse notice: {e}")
 
             if not cover_url:
                 og_img = re.search(r'<meta\s+property="og:image"\s+content="([^"]*)"', html)
@@ -115,7 +135,10 @@ class DouyinUrlParser:
         except Exception as e:
             print(f"[UrlParser] Douyin HTML fetch notice: {e}")
 
-        if not title:
+        # Ensure json import exists
+        import json
+
+        if not title or any(err_kw in title for err_kw in ["视频数据加载中", "服务器出现问题"]):
             title = f"Douyin Video #{remote_id or int(time.time())}"
 
         # 3. Attempt safe video file download if playable URL is available
