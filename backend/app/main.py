@@ -45,9 +45,9 @@ static_dir = os.path.join(frontend_dir, "static")
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def serve_index():
     index_path = os.path.join(frontend_dir, "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
-    return {"message": "Douyin Content Finder Backend API is running! Visit /api/docs"}
+    return {"status": "ok", "message": "Douyin Content Finder Backend API is running! Visit /docs"}
