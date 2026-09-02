@@ -10,12 +10,14 @@ from sqlalchemy.orm import Session
 from ..core.database import get_db
 from ..core.models import Video, VideoAnalysis, SearchQuery, SearchResult, Job
 from ..core.config import settings
+from ..core.cache import search_cache, query_cache, video_hash_cache, rate_limiter
 from ..douyin.url_parser import DouyinUrlParser
 from ..worker.job_runner import PipelineJobRunner
 from ..providers.factory import get_search_provider
 from ..ranking.scoring import MultiLayerScoringEngine
 from ..ranking.filters import AdvancedResultFilter
 from ..pipeline.deduplicator import Deduplicator
+from ..pipeline.query_generator import QueryGenerator
 
 router = APIRouter(prefix="/v1")
 
@@ -356,13 +358,20 @@ async def api_v1_unified_search(
     if not search_term:
         raise HTTPException(status_code=400, detail={"error": {"code": "EMPTY_QUERY", "message": "Từ khóa tìm kiếm (query/keyword) không được để trống."}})
     
+    cache_key = f"unified_{search_term}_{body.deep_search}_{body.limit}_{body.min_likes}"
+    cached_result = search_cache.get(cache_key)
+    if cached_result:
+        return cached_result
+
     kw_req = KeywordSearchRequest(
         keyword=search_term,
         deep_search=body.deep_search or False,
         limit=body.limit or 20,
         min_likes=body.min_likes or 0
     )
-    return await api_v1_search_keyword(kw_req, db)
+    res = await api_v1_search_keyword(kw_req, db)
+    search_cache.set(cache_key, res)
+    return res
 
 # POST /api/v1/analyze/video
 @router.post("/analyze/video")
