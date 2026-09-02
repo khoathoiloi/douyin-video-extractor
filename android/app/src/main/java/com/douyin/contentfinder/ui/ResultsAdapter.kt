@@ -19,13 +19,31 @@ import com.douyin.contentfinder.api.SearchResultItem
 import com.douyin.contentfinder.utils.IntentUtils
 
 class ResultsAdapter(
-    private val items: MutableList<SearchResultItem> = mutableListOf()
+    private val items: MutableList<SearchResultItem> = mutableListOf(),
+    private val onSelectionChanged: ((Int) -> Unit)? = null
 ) : RecyclerView.Adapter<ResultsAdapter.ResultViewHolder>() {
+
+    val selectedItems = mutableSetOf<SearchResultItem>()
 
     fun setResults(newItems: List<SearchResultItem>) {
         items.clear()
+        selectedItems.clear()
         items.addAll(newItems)
         notifyDataSetChanged()
+        onSelectionChanged?.invoke(0)
+    }
+
+    fun selectAll() {
+        selectedItems.clear()
+        selectedItems.addAll(items)
+        notifyDataSetChanged()
+        onSelectionChanged?.invoke(selectedItems.size)
+    }
+
+    fun deselectAll() {
+        selectedItems.clear()
+        notifyDataSetChanged()
+        onSelectionChanged?.invoke(0)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ResultViewHolder {
@@ -41,6 +59,7 @@ class ResultsAdapter(
 
     inner class ResultViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val ivCover: ImageView = itemView.findViewById(R.id.ivCover)
+        private val cbSelect: CheckBox = itemView.findViewById(R.id.cbSelect)
         private val tvTitle: TextView = itemView.findViewById(R.id.tvTitle)
         private val tvAuthor: TextView = itemView.findViewById(R.id.tvAuthor)
         private val tvLikes: TextView = itemView.findViewById(R.id.tvLikes)
@@ -55,6 +74,14 @@ class ResultsAdapter(
             tvLikes.text = String.format("❤️ %,d", item.likeCount)
             tvQuery.text = "Query: ${item.searchQuery}"
             tvScore.text = "${item.score}% Match"
+
+            cbSelect.setOnCheckedChangeListener(null)
+            cbSelect.isChecked = selectedItems.contains(item)
+            cbSelect.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked) selectedItems.add(item)
+                else selectedItems.remove(item)
+                onSelectionChanged?.invoke(selectedItems.size)
+            }
 
             // Color tier
             val colorRes = when {

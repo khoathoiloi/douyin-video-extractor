@@ -47,6 +47,10 @@ class SearchFragment : Fragment() {
     private lateinit var tvProgressStage: TextView
     private lateinit var progressBar: ProgressBar
     private lateinit var tvResultsHeader: TextView
+    private lateinit var layoutBatchActions: View
+    private lateinit var btnSelectAll: Button
+    private lateinit var btnDeselectAll: Button
+    private lateinit var btnDownloadSelected: Button
     private lateinit var rvResults: RecyclerView
     private lateinit var adapter: ResultsAdapter
 
@@ -99,11 +103,22 @@ class SearchFragment : Fragment() {
         tvProgressStage = v.findViewById(R.id.tvProgressStage)
         progressBar = v.findViewById(R.id.progressBar)
         tvResultsHeader = v.findViewById(R.id.tvResultsHeader)
+        layoutBatchActions = v.findViewById(R.id.layoutBatchActions)
+        btnSelectAll = v.findViewById(R.id.btnSelectAll)
+        btnDeselectAll = v.findViewById(R.id.btnDeselectAll)
+        btnDownloadSelected = v.findViewById(R.id.btnDownloadSelected)
         rvResults = v.findViewById(R.id.rvResults)
 
-        adapter = ResultsAdapter()
+        adapter = ResultsAdapter { count ->
+            btnDownloadSelected.text = "☁️ TẢI & DRIVE ($count)"
+            btnDownloadSelected.isEnabled = (count > 0)
+        }
         rvResults.layoutManager = LinearLayoutManager(requireContext())
         rvResults.adapter = adapter
+
+        btnSelectAll.setOnClickListener { adapter.selectAll() }
+        btnDeselectAll.setOnClickListener { adapter.deselectAll() }
+        btnDownloadSelected.setOnClickListener { startBatchDownload() }
     }
 
     private fun setupEvents() {
@@ -139,6 +154,76 @@ class SearchFragment : Fragment() {
                 0 -> startVideoUploadSearch()
                 1 -> startUrlSearch()
                 2 -> startKeywordSearch()
+            }
+        }
+    }
+
+    private fun startBatchDownload() {
+        val selected = adapter.selectedItems.toList()
+        if (selected.isEmpty()) {
+            Toast.makeText(requireContext(), "Vui lòng chọn ít nhất 1 video", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val progressDialog = android.app.ProgressDialog(requireContext()).apply {
+            setTitle("☁️ Tải Trên Cloud & Upload Google Drive")
+            setMessage("Đang khởi tạo hàng đợi trên Render Server...")
+            setProgressStyle(android.app.ProgressDialog.STYLE_HORIZONTAL)
+            max = 100
+            setCancelable(false)
+            setButton(android.content.DialogInterface.BUTTON_NEGATIVE, "Đóng") { dialog, _ ->
+                dialog.dismiss()
+            }
+            show()
+        }
+
+        lifecycleScope.launch {
+            try {
+                val videos = selected.map {
+                    DownloadVideoItem(
+                        videoId = it.videoId,
+                        url = it.url,
+                        title = it.title,
+                        author = it.author,
+                        coverUrl = it.coverUrl ?: "",
+                        availabilityStatus = "ACTIVE"
+                    )
+                }
+                val req = BatchDownloadRequest(videos = videos, uploadToDrive = true, driveFolder = "Douyin Downloader")
+                val resp = apiService.startBatchDownload(req)
+                if (resp.isSuccessful && resp.body() != null) {
+                    val jobId = resp.body()!!.jobId
+                    pollDownloadProgress(jobId, progressDialog)
+                } else {
+                    progressDialog.dismiss()
+                    Toast.makeText(requireContext(), "Lỗi khởi tạo tải trên server", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                progressDialog.dismiss()
+                Toast.makeText(requireContext(), "Lỗi kết nối: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun pollDownloadProgress(jobId: String, dialog: android.app.ProgressDialog) {
+        lifecycleScope.launch {
+            for (i in 0..120) {
+                delay(1200)
+                try {
+                    val resp = apiService.getDownloadJobStatus(jobId)
+                    if (resp.isSuccessful && resp.body() != null) {
+                        val d = resp.body()!!
+                        dialog.progress = d.progressPercent
+                        dialog.setMessage("Đang xử lý: ${d.completedItems}/${d.totalItems} video hoàn thành (Lỗi: ${d.failedItems})")
+
+                        if (d.status in listOf("completed", "completed_with_errors", "failed")) {
+                            dialog.setMessage(if (d.failedItems == 0) "✅ Hoàn tất tải ${d.completedItems} video lên Google Drive!" else "Đã tải xong ${d.completedItems}/${d.totalItems} video (Lỗi: ${d.failedItems})")
+                            break
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Retry
+                }
             }
         }
     }
@@ -229,7 +314,7 @@ class SearchFragment : Fragment() {
                 if (resp.isSuccessful && resp.body() != null) {
                     val items = resp.body()!!.results
                     adapter.setResults(items)
-                    tvResultsHeader.visibility = View.VISIBLE
+                    layoutBatchActions.visibility = View.VISIBLE
                     saveHistory(resp.body()!!.jobId, kw, "keyword")
                 } else {
                     Toast.makeText(requireContext(), "Không tìm thấy kết quả", Toast.LENGTH_SHORT).show()
@@ -277,7 +362,7 @@ class SearchFragment : Fragment() {
                 if (resp.isSuccessful && resp.body() != null) {
                     val list = resp.body()!!.results
                     adapter.setResults(list)
-                    tvResultsHeader.visibility = View.VISIBLE
+                    layoutBatchActions.visibility = View.VISIBLE
                 }
             } catch (e: Exception) {
                 hideProgress()

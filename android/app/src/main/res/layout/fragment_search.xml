@@ -200,18 +200,67 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Results List -->
-            <TextView
-                android:id="@+id/tvResultsHeader"
+            <!-- Results Header & Batch Actions -->
+            <LinearLayout
+                android:id="@+id/layoutBatchActions"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
                 android:layout_marginBottom="8dp"
-                android:text="KẾT QUẢ VIDEO DOUYIN TƯƠNG ĐỒNG"
-                android:textColor="@color/accent"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:visibility="gone" />
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tvResultsHeader"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="KẾT QUẢ VIDEO DOUYIN TƯƠNG ĐỒNG"
+                    android:textColor="@color/accent"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <Button
+                        android:id="@+id/btnSelectAll"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="Chọn tất cả"
+                        android:textColor="@color/accent"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/btnDeselectAll"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_marginStart="4dp"
+                        android:text="Bỏ chọn"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1" />
+
+                    <Button
+                        android:id="@+id/btnDownloadSelected"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:text="☁️ TẢI & DRIVE (0)"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:backgroundTint="#059669"
+                        android:enabled="false" />
+                </LinearLayout>
+            </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvResults"
