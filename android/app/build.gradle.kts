@@ -20,6 +20,15 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("release.keystore")
+            storePassword = "douyin123"
+            keyAlias = "douyin_key"
+            keyPassword = "douyin123"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -27,7 +36,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
         debug {
             isMinifyEnabled = false
@@ -65,4 +74,7 @@ dependencies {
     // Local Room Database for Offline History
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
+
+    // Testing
+    testImplementation("junit:junit:4.13.2")
 }
