@@ -138,6 +138,9 @@ async def api_v1_search_keyword(
     video = Video(id=video_id, filename=f"Keyword_{kw}.txt", file_path="", filesize=0)
     db.add(video)
 
+    job = Job(id=job_id, video_id=video_id, stage="completed", status="completed", progress_percent=100)
+    db.add(job)
+
     saved = []
     candidates = []
     for r in raw_results:
@@ -324,3 +327,138 @@ def api_v1_delete_history(video_id: str, db: Session = Depends(get_db)):
         db.delete(video)
         db.commit()
     return {"success": True, "message": "Đã xóa lịch sử tìm kiếm."}
+
+# ==========================================
+# STANDARDIZED SECTION 1 REST ENDPOINTS
+# ==========================================
+
+class UnifiedSearchRequest(BaseModel):
+    keyword: Optional[str] = None
+    query: Optional[str] = None
+    deep_search: Optional[bool] = False
+    limit: Optional[int] = 20
+    min_likes: Optional[int] = 0
+
+class SettingsUpdateRequest(BaseModel):
+    ai_provider: Optional[str] = None
+    gemini_api_key: Optional[str] = None
+    openai_api_key: Optional[str] = None
+    douyin_search_provider: Optional[str] = None
+    douyin_cookie: Optional[str] = None
+
+# POST /api/v1/search
+@router.post("/search")
+async def api_v1_unified_search(
+    body: UnifiedSearchRequest,
+    db: Session = Depends(get_db)
+):
+    search_term = (body.query or body.keyword or "").strip()
+    if not search_term:
+        raise HTTPException(status_code=400, detail={"error": {"code": "EMPTY_QUERY", "message": "Từ khóa tìm kiếm (query/keyword) không được để trống."}})
+    
+    kw_req = KeywordSearchRequest(
+        keyword=search_term,
+        deep_search=body.deep_search or False,
+        limit=body.limit or 20,
+        min_likes=body.min_likes or 0
+    )
+    return await api_v1_search_keyword(kw_req, db)
+
+# POST /api/v1/analyze/video
+@router.post("/analyze/video")
+async def api_v1_analyze_video(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    user_hint: str = Form(""),
+    deep_search: bool = Form(False),
+    db: Session = Depends(get_db)
+):
+    return await api_v1_search_video(background_tasks, file, user_hint, deep_search, db)
+
+# POST /api/v1/analyze/url
+@router.post("/analyze/url")
+async def api_v1_analyze_url(
+    body: UrlSearchRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    return await api_v1_search_url(body, background_tasks, db)
+
+# POST /api/v1/files
+@router.post("/files")
+async def api_v1_upload_file(
+    file: UploadFile = File(...)
+):
+    filename = file.filename or "uploaded_media.mp4"
+    ext = filename.split(".")[-1].lower() if "." in filename else "bin"
+    file_id = str(uuid.uuid4())
+    save_filename = f"{file_id}.{ext}"
+    save_path = os.path.join(settings.UPLOAD_DIR, save_filename)
+
+    async with aiofiles.open(save_path, "wb") as out_file:
+        content = await file.read()
+        if len(content) > settings.MAX_VIDEO_SIZE_MB * 1024 * 1024:
+            raise HTTPException(status_code=400, detail={"error": {"code": "FILE_TOO_LARGE", "message": "File vượt quá dung lượng tối đa cho phép."}})
+        await out_file.write(content)
+
+    return {
+        "file_id": file_id,
+        "filename": filename,
+        "filesize": len(content),
+        "file_path": save_path,
+        "content_type": file.content_type or "application/octet-stream",
+        "message": "Tải lên file thành công."
+    }
+
+# GET /api/v1/jobs/{job_id}
+@router.get("/jobs/{job_id}")
+def api_v1_get_job_details(job_id: str, db: Session = Depends(get_db)):
+    return api_v1_get_job_status(job_id, db)
+
+# GET /api/v1/settings
+@router.get("/settings")
+def api_v1_get_settings():
+    return {
+        "project_name": settings.PROJECT_NAME,
+        "version": settings.VERSION,
+        "ai_provider": settings.AI_PROVIDER,
+        "douyin_search_provider": settings.DOUYIN_SEARCH_PROVIDER,
+        "has_gemini_key": bool(settings.GEMINI_API_KEY.strip()),
+        "has_openai_key": bool(settings.OPENAI_API_KEY.strip()),
+        "has_douyin_cookie": bool(settings.DOUYIN_COOKIE.strip()),
+        "max_video_size_mb": settings.MAX_VIDEO_SIZE_MB,
+        "weights": {
+            "semantic": settings.WEIGHT_SEMANTIC,
+            "visual": settings.WEIGHT_VISUAL,
+            "keyword": settings.WEIGHT_KEYWORD,
+            "hashtag": settings.WEIGHT_HASHTAG,
+            "content_type": settings.WEIGHT_CONTENT_TYPE,
+            "popularity": settings.WEIGHT_POPULARITY
+        }
+    }
+
+# PUT /api/v1/settings
+@router.put("/settings")
+def api_v1_update_settings(body: SettingsUpdateRequest):
+    if body.ai_provider is not None:
+        settings.AI_PROVIDER = body.ai_provider
+    if body.gemini_api_key is not None:
+        settings.GEMINI_API_KEY = body.gemini_api_key
+    if body.openai_api_key is not None:
+        settings.OPENAI_API_KEY = body.openai_api_key
+    if body.douyin_search_provider is not None:
+        settings.DOUYIN_SEARCH_PROVIDER = body.douyin_search_provider
+    if body.douyin_cookie is not None:
+        settings.DOUYIN_COOKIE = body.douyin_cookie
+
+    return {
+        "success": True,
+        "message": "Cấu hình hệ thống đã được cập nhật thành công.",
+        "settings": {
+            "ai_provider": settings.AI_PROVIDER,
+            "douyin_search_provider": settings.DOUYIN_SEARCH_PROVIDER,
+            "has_gemini_key": bool(settings.GEMINI_API_KEY.strip()),
+            "has_openai_key": bool(settings.OPENAI_API_KEY.strip()),
+            "has_douyin_cookie": bool(settings.DOUYIN_COOKIE.strip())
+        }
+    }
